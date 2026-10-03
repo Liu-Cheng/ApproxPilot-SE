@@ -1,0 +1,58 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage[OT1]{fontenc}
+\usepackage{cite}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{url}
+\usepackage[caption=false,font=footnotesize]{subfig}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{placeins}
+
+\graphicspath{{figures/}}
+
+% Avoid stacking multiple double-column floats
+% at the top of the same page.
+\setcounter{dbltopnumber}{1}
+\renewcommand{\dbltopfraction}{0.85}
+\renewcommand{\textfraction}{0.10}
+
+\hyphenation{ap-prox-i-mate ac-cel-er-a-tor sur-ro-gate mul-ti-ob-jec-tive non-dom-i-nat-ed}
+
+\title{ApproxPilot-SE: Co-Evolving Surrogate Models and DSE for Approximate Accelerators}
+
+\author{Yanzhe~Wang,
+        Cheng~Liu,
+        Fangfa~Fu,
+        Bing~Yang
+        and~Jinxiang~Wang}
+
+\begin{document}
+\maketitle
+
+
+\begin{abstract}
+Approximate computing can reduce hardware cost with tolerable accuracy degradation, but finding high-quality designs under output-quality constraints still requires extensive design space exploration (DSE). Existing surrogate-assisted approaches typically rely on large training datasets constructed for the target accelerator or on pretrained models transferred from existing circuit domains.
+
+This paper presents \emph{ApproxPilot-SE}, a co-evolving surrogate-assisted DSE framework for approximate accelerators under limited synthesis budgets. ApproxPilot-SE jointly optimizes approximation-site selection and arithmetic-unit assignment while iteratively selecting Pareto-relevant candidates for ground-truth evaluation. The newly measured power, performance, and area (PPA) and quality-of-result (QoR) labels are incorporated into subsequent surrogate updates, allowing surrogate learning and multi-objective search to progressively adapt to the regions exposed during optimization. With 900 target-system training labels on DCT76, ApproxPilot-SE achieves a verified 3-D PPA hypervolume (HV) gain of 0.085054 at 90\% structural similarity index (SSIM) retention, compared with 0.023273 for the stronger baseline at the same constraint. It also maintains a verified HV Gain of 0.067996 at 99\% retention, whereas both baselines provide no gain beyond the Exact reference. Under the same 900-label training budget, co-evolving optimization improves verified HV Gain over an aligned one-shot workflow by up to 50.84\%. A representative high-quality design retains 99.68\% of the Exact-design SSIM while reducing Area, Power, and Delay by 19.73\%, 20.50\%, and 12.71\%, respectively. These results show that coupling ground-truth feedback with surrogate-guided search can improve the quality of verified PPA--QoR tradeoffs under constrained target-system evaluation budgets.
+\end{abstract}
+
+
+\begin{IEEEkeywords}
+approximate computing, design space exploration, graph neural networks, logic synthesis, surrogate modeling, electronic design automation.
+\end{IEEEkeywords}
+
+\input{chapters/01introduction}
+\input{chapters/02background_related_work}
+\input{chapters/03proposed_methodology}
+\input{chapters/04Experiments}
+\input{chapters/05conclusion}
+
+\FloatBarrier
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+\end{document}

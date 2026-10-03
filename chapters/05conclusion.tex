@@ -1,0 +1,30 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented ApproxPilot-SE, a co-evolving surrogate-assisted
+DSE framework for approximate accelerators. Search-selected
+configurations provide new PPA and QoR measurements that update both
+surrogates before the next DSE round. This feedback directs the
+available training-label budget toward Pareto-relevant regions
+of the legal approximation space.
+
+The experimental results show that this interaction between surrogate
+learning and search improves the quality of the final verified design
+set. On DCT76, ApproxPilot-SE achieves a verified 3-D PPA HV Gain of
+0.085054 at 90\% SSIM retention, compared with 0.023273 for the
+stronger baseline, and retains an HV Gain of 0.067996 at 99\%
+retention. Under the same 900-label target-system training budget,
+co-evolving optimization improves verified HV Gain over an aligned
+one-shot workflow by up to 50.84\%. The timing-domain path readout
+further reduces Delay MAE by 7.45\% relative to global max pooling
+while improving both Spearman correlation and pairwise ranking
+accuracy.
+
+The final verified archive also contains high-quality configurations
+that simultaneously improve multiple hardware objectives while
+remaining close to Exact output quality. A representative DCT76
+design retains 99.68\% of the Exact-design SSIM while reducing Area,
+Power, and Delay by 19.73\%, 20.50\%, and 12.71\%, respectively.
+These results demonstrate the value of coupling surrogate updates
+with search-guided system-level evaluation for high-quality
+approximate-accelerator design.

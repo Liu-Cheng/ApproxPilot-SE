@@ -1,0 +1,61 @@
+\section{Introduction}
+\label{sec:introduction}
+
+\IEEEPARstart{A}{pproximate}  computing trades bounded degradation in output quality for improvements in hardware area, power, and delay, providing an effective means of improving the efficiency of domain-specific accelerators~\cite{jiang2020approxarith,que2023approxsurvey,xu2016approxsurvey}. 
+Approximate arithmetic libraries, such as EvoApprox8b~\cite{mrazek2017evoapprox}, provide diverse adders, subtractors, and multipliers with different error characteristics and hardware costs, enabling designers to construct approximate accelerators by selectively replacing exact arithmetic units.
+However, when an accelerator contains many configurable arithmetic sites and each site admits multiple legal implementations, the number of system configurations grows combinatorially.
+System-level power, performance, and area (PPA) depend on logic synthesis, structural interactions, and timing paths, so component costs alone do not determine the accelerator implementation.
+Application quality is likewise determined by how local approximation errors propagate through the complete computation.
+Consequently, exhaustive synthesis and application-level evaluation quickly become impractical, making efficient design space exploration (DSE) a central challenge in automated approximate-accelerator design~\cite{saeedi2024dse,silva2024mapping}.
+
+Surrogate-assisted DSE has substantially reduced the cost of exploring such large spaces.
+AutoAx~\cite{mrazek2019autoax} established an automated exploration methodology based on libraries of approximate components, while Xel-FPGAs~\cite{prabakaran2023xelfpgas} extended end-to-end automated exploration to FPGA-based approximate accelerators.
+More recently, ApproxPilot~\cite{zhang2025approxpilot} introduced graph-neural-network-based modeling for accelerator approximation, and ApproxGNN~\cite{vlcek2025approxgnn} explored pretrained graph representations for parameter prediction in approximate-computing DSE.
+These advances demonstrate that learned surrogates can replace a large fraction of expensive hardware evaluations and enable exploration of design spaces that would otherwise be difficult to search directly.
+
+The central challenge is to align surrogate learning with the regions that matter to optimization.
+Multi-objective DSE does not query the design space uniformly.
+As optimization progresses, the search increasingly concentrates on configurations that appear competitive with respect to the current Pareto front.
+Therefore, prediction quality in these Pareto-relevant regions is more important to the final optimization outcome than uniformly high accuracy over the entire design space.
+In representative surrogate-based approximate-accelerator flows, the surrogate is trained or adapted before the main search and is subsequently used to evaluate a much larger set of candidate configurations~\cite{mrazek2019autoax,zhang2025approxpilot,vlcek2025approxgnn}.
+Evaluating promising configurations identified during DSE provides system-level supervision directly relevant to subsequent search.
+Feedback-driven evaluation has already proved useful for other expensive hardware optimization problems, including Bayesian and active-learning-based DSE~\cite{reagen2017bayesopt,bai2021boomexplorer,huang2024arsflow,huang2025arsflow2}.
+For approximate accelerators, the key question is how to couple such feedback with simultaneous PPA and application-quality modeling over a large, heterogeneous, multi-site approximation space.
+
+Delay modeling poses a second challenge because its structural dependence differs from that of area and power.
+While area and power reflect aggregate effects across the synthesized design, system delay is dominated by dependencies along competing combinational paths.
+ApproxPilot explicitly incorporates critical-path information into its delay modeling~\cite{zhang2025approxpilot}.
+More broadly, graph-based delay prediction has demonstrated the importance of structural information in both FPGA and ASIC-oriented modeling~\cite{ustun2020delay,de2023asicdelay}.
+Motivated by this property, we directly propagate and aggregate latent node representations along RTL timing domains and directed dependencies.
+The resulting representation captures path-dependent delay behavior at the configuration level without requiring explicit critical-path node labels.
+
+We present \textbf{ApproxPilot-SE}, an extension of ApproxPilot that couples surrogate learning and DSE through iterative ground-truth feedback.
+Separate PPA and quality-of-result (QoR) surrogates guide the search over legal configurations of the target accelerator.
+Non-dominated sorting and crowding distance identify Pareto-relevant candidates for logic synthesis and application-level evaluation.
+The measured labels update both surrogates, directing subsequent search toward regions informed by the new measurements.
+After the iterative search terminates, the final candidate set is evaluated using logic synthesis and application-level quality measurement to construct the verified Pareto front.
+
+The main contributions of this work are summarized as follows:
+
+\begin{itemize}
+
+    \item \textbf{A co-evolving PPA--QoR DSE framework for multi-site approximate-accelerator optimization.}
+    ApproxPilot-SE couples multi-objective search with iterative system-level feedback: Pareto-relevant configurations identified during DSE are evaluated for real PPA and QoR, incorporated into the training set, and used to update both surrogates before the next search round.
+    Under the same 900-label target-system training budget, ApproxPilot-SE improves ground-truth hypervolume (HV) gain over an aligned one-shot workflow by \textbf{50.84\%} at 99\% SSIM retention on DCT76.
+
+    \item \textbf{A timing-domain path aggregation mechanism without explicit critical-path node supervision.}
+    ApproxPilot-SE propagates latent node representations along directed RTL dependencies within timing domains and aggregates competing paths into a structure-aware representation for system-level delay prediction.
+    Across three paired training seeds, the proposed readout reduces Delay MAE by \textbf{7.45\%} relative to global max pooling, while improving Spearman correlation from \textbf{0.7965} to \textbf{0.8217} and pairwise ranking accuracy from \textbf{80.37\%} to \textbf{81.67\%}.
+
+    \item \textbf{An end-to-end, ground-truth-verified optimization flow for approximate accelerators.}
+    ApproxPilot-SE integrates legal configuration generation, PPA/QoR modeling, co-evolving search, and final synthesis- and application-level verification into a unified system-level workflow.
+    On DCT76, it achieves higher ground-truth PPA HV gain than ApproxPilot and ApproxGNN under all five SSIM-retention constraints from 80\% to 99\%.
+    A representative high-quality design retains \textbf{99.68\%} of the Exact SSIM while reducing Area, Power, and Delay by \textbf{19.73\%}, \textbf{20.50\%}, and \textbf{12.71\%}, respectively.
+
+\end{itemize}
+
+The remainder of this paper is organized as follows.
+Section~\ref{sec:related} reviews automated approximate-accelerator design, learning-based hardware modeling, and sequential DSE with expensive evaluations.
+Section~\ref{sec:method} presents the surrogate models, timing-domain path aggregation, and the co-evolution of surrogate learning and DSE in ApproxPilot-SE.
+Section~\ref{sec:experiments} evaluates ApproxPilot-SE in terms of ground-truth Pareto quality, surrogate ranking quality, the effect of co-evolving optimization, delay modeling, and representative hardware designs.
+Section~\ref{sec:conclusion} concludes the paper.
