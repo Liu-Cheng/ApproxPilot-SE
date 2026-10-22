@@ -1,0 +1,6 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented ApproxPilot-SE, which couples surrogate learning with design space exploration for approximate accelerators. Configuration-aware graph models, path-aware Delay aggregation, and measured-reference local calibration reuse synthesis data throughout optimization. Ground-truth feedback updates both the predictors and their calibration references as the search progresses.
+
+On DCT, ApproxPilot-SE achieves better verified PPA tradeoffs using 20\% fewer training configurations than the baselines. At 90\% SSIM retention, its 3D PPA HV Gain is 3.81 times that of the stronger baseline. It also provides additional coverage beyond Exact at 99\% retention. A representative design simultaneously reduces Area, Power, and Delay while retaining 99.62\% of Exact-design SSIM. Together, these results demonstrate the value of reusing measurements for prediction, calibration, and search-guided learning.

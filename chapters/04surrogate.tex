@@ -1,0 +1,249 @@
+\FloatBarrier
+\section{Surrogate Modeling}
+\label{sec:surrogate_modeling}
+
+ApproxPilot-SE uses separate configuration-aware graph models for system-level PPA and application accuracy. Their graph inputs describe the selected arithmetic implementations and their structural context. The PPA model separates aggregate hardware costs from path-dependent Delay through dedicated readouts. Measurement-based local calibration then refines the Delay estimates used by the search.
+
+\subsection{Configuration-Aware Graph Representation}
+\label{subsec:configuration_graph}
+
+For a configuration $\mathbf{x}$, arithmetic operations form graph vertices, and directed edges encode their data dependencies. A configurable vertex receives the features of the unit selected by $\mathbf{x}$; fixed arithmetic vertices retain their original implementations. Legal replacements preserve operation type, bit width, and interface, so the application topology and vertex order remain fixed across configurations while the selected-unit features change.
+
+The PPA branch uses the directed arithmetic timing graph. Its node inputs include operation type, operand and result widths, signedness, stage indicators, topological depth, and fan-in/fan-out. Pre-characterized selected-unit Area, Power, and Delay are accompanied by their Exact-unit values, differences, ratios, and availability masks. These features describe local unit costs without substituting them for measured system-level labels. Configuration-level features summarize the fraction of approximate units and aggregate PPA changes, including stage-specific summaries.
+
+The SSIM branch retains the application graph and augments the base node inputs with selected-unit identity and arithmetic-error descriptors. These include MAE, MSE, error rate, sampled maximum absolute error, and their normalized forms. Thus, unit identity and numerical error characterize the approximation applied at each position, while message passing captures its application context. Table~\ref{tab:node_features} summarizes representative features across the two branches. Feature standardization is determined from the current training set.
+
+\begin{table}[tb]
+\centering
+\caption{Representative input features used by the surrogate models.}
+\label{tab:node_features}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\renewcommand{\arraystretch}{1.02}
+
+\begin{tabularx}{0.98\columnwidth}{
+    >{\centering\arraybackslash}p{0.22\columnwidth}
+    >{\centering\arraybackslash}p{0.21\columnwidth}
+    >{\centering\arraybackslash}X
+}
+\hline
+& \textbf{Feature} & \textbf{Description} \\
+\hline
+
+\multirow[c]{3}{*}{Structure}
+& Operation Type
+& Arithmetic operation type \\
+
+& Bit Width
+& Input/output bit widths \\
+
+& Graph Depth
+& Position in computation graph \\
+\hline
+
+\multirow[c]{3}{*}{Hardware}
+& Area
+& Unit-level area \\
+
+& Power
+& Unit-level power \\
+
+& Delay
+& Unit-level delay \\
+\hline
+
+\multirow[c]{3}{*}{Error}
+& MAE
+& Mean absolute error \\
+
+& MSE
+& Mean square error \\
+
+& Error Rate
+& Arithmetic error frequency \\
+\hline
+
+\multirow[c]{2}{*}{Configuration}
+& Unit Identity
+& Selected arithmetic unit \\
+
+& Approx. Ratio
+& Fraction of approximate units \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+\subsection{PPA and Accuracy Surrogates}
+\label{subsec:surrogate_models}
+
+The PPA surrogate embeds each standardized node input and propagates information along the directed arithmetic graph. Let $\mathbf h_v^{(\ell)}$ denote the representation of vertex $v$, $\operatorname{pred}(v)$ its timing-graph predecessors, and $\mathbf b_v$ its fixed edge summary, which describes incoming degree and mean source width. The directed residual update is
+\begin{align}
+\mathbf m_v^{(\ell)}
+&=W_s^{(\ell)}\mathbf h_v^{(\ell)}
+  +W_e^{(\ell)}\mathbf b_v+\mathbf c^{(\ell)} \nonumber\\
+&\quad+W_n^{(\ell)}
+\frac{\sum_{u\in\operatorname{pred}(v)}\mathbf h_u^{(\ell)}}
+{\max(1,|\operatorname{pred}(v)|)}, \nonumber\\
+\mathbf h_v^{(\ell+1)}
+&=\mathbf h_v^{(\ell)}+\psi_\ell(\mathbf m_v^{(\ell)}).
+\label{eq:ppa_message_passing}
+\end{align}
+Here, $\mathbf c^{(\ell)}$ is the learned bias, and $\psi_\ell$ applies layer normalization, ReLU, and dropout in order. The predecessor term is zero at a source vertex, and absent vertices are masked. Write $\mathbf h_v$ for the final node representation and $\mathbf g(\mathbf{x})$ for the standardized configuration-level features.
+
+Area and Power use separate learned pooling gates. For target $k\in\{A,P\}$, the readout is
+\begin{align}
+\alpha_{v,k}
+&=\frac{\exp(\mathbf w_k^{\mathsf T}\mathbf h_v+b_k)}
+{\sum_{u\in V}\exp(\mathbf w_k^{\mathsf T}\mathbf h_u+b_k)},\nonumber\\
+\mathbf z_k&=|V|\sum_{v\in V}\alpha_{v,k}\mathbf h_v.
+\label{eq:hardware_weighted_readout}
+\end{align}
+The factor $|V|$ preserves the scale of a summed representation. Each regression head combines its pooled representation with $\mathbf g$:
+\begin{equation}
+\widehat k(\mathbf{x})=\mu_k+s_k\,\phi_k
+\left(\mathbf z_k\mathbin\Vert\mathbf g(\mathbf{x})\right),
+\qquad k\in\{A,P\},
+\label{eq:hardware_prediction}
+\end{equation}
+where $\Vert$ denotes concatenation, and $\mu_k,s_k$ are the target mean and standard deviation from the training set. The shared encoder and Delay branch are retained when the Area/Power gates and heads are refined. Delay uses the timing-domain readout developed in Section~\ref{subsec:timing_path}.
+
+The accuracy surrogate uses GraphSAGE layers with mean neighbor aggregation and ReLU activation. The final node representations are concatenated in the fixed application-graph order and passed to a regression head with one SSIM output per evaluation image. After restoring each output to its SSIM scale, the configuration-level prediction is
+\begin{equation}
+\widehat Q(\mathbf{x})=\frac{1}{K}\sum_{j=1}^{K}\widehat q_j(\mathbf{x}),
+\label{eq:ssim_prediction}
+\end{equation}
+where $K$ is the number of evaluation inputs. Accuracy therefore denotes mean application-level SSIM. PPA and SSIM are trained against their corresponding measured labels; predictions from multiple trained members are averaged in the original target units before use in search and calibration.
+
+\subsection{Timing-Domain Path Aggregation}
+\label{subsec:timing_path}
+
+Area and Power summarize costs distributed across arithmetic units, whereas Delay depends on the accumulation of contributions along dependent operations. A global maximum over individual node representations does not explicitly accumulate such contributions or distinguish alternative paths that merge at a vertex. ApproxPilot-SE therefore applies a separate max-plus aggregation to the shared node representations for Delay prediction.
+
+The arithmetic timing graph is organized into fixed acyclic subgraphs $G_d=(V_d,E_d)$, called timing domains. Their masks and predecessor relations are supplied by graph preprocessing. In the DCT implementation, the masks separate the two one-dimensional transform stages, and timing accumulation uses the dependencies within each stage. The domain masks and topological processing plan are reused across configurations.
+
+Let $\operatorname{pred}_d(v)=\{u\in V_d\mid(u,v)\in E_d\}$. In topological order, the path state at vertex $v$ in domain $d$ is
+\begin{equation}
+\mathbf s_{v,d}=
+\begin{cases}
+\mathbf h_v, & \operatorname{pred}_d(v)=\varnothing,\\[2pt]
+\mathbf h_v+\displaystyle\max_{u\in\operatorname{pred}_d(v)}\mathbf s_{u,d},
+& \text{otherwise},
+\end{cases}
+\label{eq:timing_path_state}
+\end{equation}
+where the maximum is element-wise. Contributions accumulate along a path; at a convergence, each latent channel retains the strongest incoming path state. Different channels can therefore emphasize different dependency paths. The domain and graph readouts are
+\begin{equation}
+\mathbf z_d=\max_{v\in V_d}\mathbf s_{v,d},
+\qquad
+\mathbf z_D=\max_d\mathbf z_d.
+\label{eq:timing_domain_readout}
+\end{equation}
+The Delay-specific head predicts
+\begin{equation}
+\widehat D(\mathbf{x})=\mu_D+s_D\,\phi_D
+\left(\mathbf z_D\mathbin\Vert\mathbf g(\mathbf{x})\right).
+\label{eq:path_delay_prediction}
+\end{equation}
+This branch accumulates and compares path states before graph-level regression, while the Area and Power branches use the weighted node aggregation in Eq.~\ref{eq:hardware_weighted_readout}. The Delay loss supervises the shared encoder and path readout through measured system-level Delay labels. All path states are learned representations; the regression head maps their pooled values to the physical Delay scale.
+
+\subsection{Measurement-Based Local Delay Calibration}
+\label{subsec:local_calibration}
+
+Local calibration reuses measured training configurations to correct candidate Delay predictions during search. At round $t$, let $\mathcal R_t$ be the nonempty set of configurations in the cumulative training set with measured Delay. For an anchor $\mathbf r\in\mathcal R_t$, cache its residual under the current surrogate:
+\begin{equation}
+\rho_t(\mathbf r)=D(\mathbf r)-\widehat D_t(\mathbf r).
+\label{eq:anchor_residual}
+\end{equation}
+Here, $\widehat D_t$ is the direct ensemble prediction in physical units. The measured value $D(\mathbf r)$ remains the training label; the residual provides a search-time correction.
+
+Configuration proximity is defined by the number of arithmetic sites assigned different implementations:
+\begin{equation}
+d(\mathbf{x},\mathbf r)=\sum_{i=1}^{N}\mathbb I[x_i\ne r_i].
+\label{eq:config_distance}
+\end{equation}
+The nearest measured anchor is
+\begin{equation}
+\mathbf r_t^*(\mathbf{x})\in
+\arg\min_{\mathbf r\in\mathcal R_t}d(\mathbf{x},\mathbf r).
+\label{eq:nearest_reference}
+\end{equation}
+Ties are resolved by ascending canonical configuration hash, giving the same reference independently of retrieval blocks. An anchor is applicable when its distance is at most $d_{\max}$. The calibrated estimate, also denoted $\widehat D_{\mathrm{cal},t}$, is
+\begin{equation}
+\widetilde D_t(\mathbf{x})=
+\begin{cases}
+D_{\mathrm{ex}}, & \mathbf{x}=\mathbf{x}_{\mathrm{ex}},\\[2pt]
+\widehat D_t(\mathbf{x})+\rho_t(\mathbf r_t^*),
+& d(\mathbf{x},\mathbf r_t^*)\le d_{\max},\\[2pt]
+\widehat D_t(\mathbf{x}), & \text{otherwise}.
+\end{cases}
+\label{eq:local_delay_calibration}
+\end{equation}
+For an applicable anchor, the middle branch equals $D(\mathbf r_t^*)+\widehat D_t(\mathbf{x})-\widehat D_t(\mathbf r_t^*)$. If the query matches a training configuration, the implementation returns that anchor's measured Delay directly. If no anchor lies within the neighborhood, the direct candidate prediction is retained. The Exact configuration preserves its known measured metrics.
+
+Only Delay is calibrated. The resulting $\widetilde D_t$ enters Eq.~\ref{eq:round_objectives}; Area, Power, and SSIM retain their direct predictions. The calibration is a residual lookup and addition, with no separately trained correction network. Only the real measurements in Eq.~\ref{eq:new_feedback_labels} enter the training set.
+
+Within a fixed model stage, omit $t$ and write $\mathbf r^*$ for the selected anchor. The calibration can also be interpreted from the perspective of prediction error. Define the original Delay prediction error as
+\begin{equation}
+e(\mathbf{x})
+=
+\widehat{D}(\mathbf{x})
+-
+D(\mathbf{x}).
+\label{eq:delay_prediction_error}
+\end{equation}
+For a candidate to which local calibration is applied,
+\begin{align}
+e_{\mathrm{cal}}(\mathbf{x})
+&=
+\widehat{D}_{\mathrm{cal}}(\mathbf{x})
+-
+D(\mathbf{x})
+\nonumber\\
+&=
+D(\mathbf{r}^{*})
++
+\widehat{D}(\mathbf{x})
+-
+\widehat{D}(\mathbf{r}^{*})
+-
+D(\mathbf{x})
+\nonumber\\
+&=
+e(\mathbf{x})
+-
+e(\mathbf{r}^{*}).
+\label{eq:calibrated_error}
+\end{align}
+
+Hence, the calibrated error is determined by the difference between the prediction errors of the candidate and its local reference. If neighboring configurations exhibit a similar shared prediction bias, their errors can be written as
+\begin{equation}
+e(\mathbf{x})
+=
+b+\delta(\mathbf{x}),
+\qquad
+e(\mathbf{r}^{*})
+=
+b+\delta(\mathbf{r}^{*}),
+\label{eq:local_bias_decomposition}
+\end{equation}
+which gives
+\begin{equation}
+e_{\mathrm{cal}}(\mathbf{x})
+=
+\delta(\mathbf{x})
+-
+\delta(\mathbf{r}^{*}).
+\label{eq:calibrated_residual_error}
+\end{equation}
+
+When neighboring configurations share a prediction-bias component, Eqs.~\ref{eq:calibrated_error}--\ref{eq:calibrated_residual_error} show how the difference correction cancels that component. After feedback and retraining, the reference set and residual cache become
+\begin{align}
+\mathcal R_{t+1}
+&=\{\mathbf{x}\mid(\mathbf{x},\mathbf y(\mathbf{x}))\in\mathcal L_{t+1}\},\nonumber\\
+\rho_{t+1}(\mathbf r)
+&=D(\mathbf r)-\widehat D_{t+1}(\mathbf r),
+\qquad \mathbf r\in\mathcal R_{t+1}.
+\label{eq:calibration_refresh}
+\end{align}
+Thus, every residual is paired with the updated model that produced its reference prediction. Blocked Hamming retrieval requires $O(n_q|\mathcal R_t|N)$ distance work for $n_q$ queries, while anchor predictions are cached once per model and reference-set version. The expanded measured dataset improves the surrogate and supplies additional local anchors for the next search round.

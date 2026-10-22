@@ -9,21 +9,30 @@
 \usepackage{array}
 \usepackage{url}
 \usepackage[caption=false,font=footnotesize]{subfig}
-\usepackage{algorithm}
 \usepackage{algorithmic}
 \usepackage{placeins}
 
 \graphicspath{{figures/}}
+\newcounter{algorithm}
 
-% Avoid stacking multiple double-column floats
-% at the top of the same page.
-\setcounter{dbltopnumber}{1}
+
+\usepackage{xcolor}
+\usepackage{pifont}
+
+
+\usepackage{tabularx}
+% 深绿色对勾、深红色叉
+\newcommand{\cmark}{\textcolor{green!50!black}{\ding{51}}}
+\newcommand{\xmark}{\textcolor{red!80!black}{\ding{55}}}
+
+% Use IEEEtran's column geometry and standard float spacing.
+\setcounter{dbltopnumber}{2}
 \renewcommand{\dbltopfraction}{0.85}
 \renewcommand{\textfraction}{0.10}
 
 \hyphenation{ap-prox-i-mate ac-cel-er-a-tor sur-ro-gate mul-ti-ob-jec-tive non-dom-i-nat-ed}
 
-\title{ApproxPilot-SE: Co-Evolving Surrogate Models and DSE for Approximate Accelerators}
+\title{ApproxPilot-SE: Self-Evolving Design Space Exploration for Approximate Accelerators}
 
 \author{Yanzhe~Wang,
         Cheng~Liu,
@@ -35,11 +44,11 @@
 \maketitle
 
 
-\begin{abstract}
-Approximate computing can reduce hardware cost with tolerable accuracy degradation, but finding high-quality designs under output-quality constraints still requires extensive design space exploration (DSE). Existing surrogate-assisted approaches typically rely on large training datasets constructed for the target accelerator or on pretrained models transferred from existing circuit domains.
 
-This paper presents \emph{ApproxPilot-SE}, a co-evolving surrogate-assisted DSE framework for approximate accelerators under limited synthesis budgets. ApproxPilot-SE jointly optimizes approximation-site selection and arithmetic-unit assignment while iteratively selecting Pareto-relevant candidates for ground-truth evaluation. The newly measured power, performance, and area (PPA) and quality-of-result (QoR) labels are incorporated into subsequent surrogate updates, allowing surrogate learning and multi-objective search to progressively adapt to the regions exposed during optimization. With 900 target-system training labels on DCT76, ApproxPilot-SE achieves a verified 3-D PPA hypervolume (HV) gain of 0.085054 at 90\% structural similarity index (SSIM) retention, compared with 0.023273 for the stronger baseline at the same constraint. It also maintains a verified HV Gain of 0.067996 at 99\% retention, whereas both baselines provide no gain beyond the Exact reference. Under the same 900-label training budget, co-evolving optimization improves verified HV Gain over an aligned one-shot workflow by up to 50.84\%. A representative high-quality design retains 99.68\% of the Exact-design SSIM while reducing Area, Power, and Delay by 19.73\%, 20.50\%, and 12.71\%, respectively. These results show that coupling ground-truth feedback with surrogate-guided search can improve the quality of verified PPA--QoR tradeoffs under constrained target-system evaluation budgets.
+\begin{abstract}
+Approximate computing typically improves accelerator power, performance, and area (PPA) by replacing selected arithmetic units with approximate implementations while preserving application-level output quality. However, exploring the large combinatorial design space requires costly system-level evaluations. Existing GNN-based approaches rely on substantial training data collected either for each target accelerator or for pretraining, making data acquisition a major cost of surrogate-assisted optimization. We present ApproxPilot-SE, a self-evolving design space exploration framework that progressively adapts its surrogate models through search-guided evaluation. Starting from a limited labeled dataset, ApproxPilot-SE jointly explores approximation-site selection and arithmetic-unit assignment, selects Pareto-relevant configurations for logic synthesis and application-level evaluation, and incorporates the resulting PPA and quality measurements into subsequent surrogate training. This feedback loop couples model learning with design exploration, directing the evaluation budget toward regions relevant to optimization instead of relying on a surrogate trained once before search. A path-aware delay readout and local calibration using measured configurations further support system-level delay estimation. On a discrete cosine transform (DCT) accelerator, ApproxPilot-SE outperforms ApproxPilot and ApproxGNN across five structural similarity index (SSIM) retention thresholds, using 720 training configurations versus 900 for each baseline. At 90\% retention, its verified three-dimensional PPA hypervolume gain is 3.81 times that of the stronger baseline. At 99\% retention, it provides additional PPA hypervolume beyond the exact-design reference, while both baselines provide zero gain. A representative DCT design retains 99.62\% of the exact-design SSIM while reducing area, power, and delay by 19.36\%, 20.68\%, and 9.70\%, respectively. These results demonstrate improved verified hardware tradeoffs with fewer target-system training labels.
 \end{abstract}
+
 
 
 \begin{IEEEkeywords}
@@ -49,10 +58,18 @@ approximate computing, design space exploration, graph neural networks, logic sy
 \input{chapters/01introduction}
 \input{chapters/02background_related_work}
 \input{chapters/03proposed_methodology}
-\input{chapters/04Experiments}
-\input{chapters/05conclusion}
-
+\input{chapters/04surrogate}
+% Keep the experiment floats compact with positive, local IEEE-style spacing.
+\begingroup
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{14pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\dblfloatsep}{10pt plus 2pt minus 2pt}
+\input{chapters/05Experiments}
+\endgroup
+\input{chapters/06conclusion}
 \FloatBarrier
+
 \bibliographystyle{IEEEtran}
 \bibliography{references}
 \end{document}
