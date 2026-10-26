@@ -1,6 +1,11 @@
+
 \section{Conclusion}
 \label{sec:conclusion}
 
-This paper presented ApproxPilot-SE, which couples surrogate learning with design space exploration for approximate accelerators. Configuration-aware graph models, path-aware Delay aggregation, and measured-reference local calibration reuse synthesis data throughout optimization. Ground-truth feedback updates both the predictors and their calibration references as the search progresses.
+In this paper, we proposed ApproxPilot-SE, an automated approximate accelerator optimization framework. The framework employs configuration-aware GNNs to predict hardware PPA and application quality, incorporating path-aware aggregation and measured-reference local calibration for Delay estimation. By integrating search-guided measurements into iterative surrogate updates, ApproxPilot-SE enables the surrogate models and DSE process to evolve together, improving the utilization of available synthesis data.
 
-On DCT, ApproxPilot-SE achieves better verified PPA tradeoffs using 20\% fewer training configurations than the baselines. At 90\% SSIM retention, its 3D PPA HV Gain is 3.81 times that of the stronger baseline. It also provides additional coverage beyond Exact at 99\% retention. A representative design simultaneously reduces Area, Power, and Delay while retaining 99.62\% of Exact-design SSIM. Together, these results demonstrate the value of reusing measurements for prediction, calibration, and search-guided learning.
+Experiments on five domain-specific accelerators, including DCT and Laplace with substantially larger combinatorial design spaces, demonstrate the effectiveness of ApproxPilot-SE. On DCT, the proposed framework achieves 3.79 times PPA HV Gain of the strongest baseline under the same training budget at 90\% SSIM retention. Notably, even with 40\% fewer training labels, it achieves 3.42 times the gain of the strongest baseline using the full budget. ApproxPilot-SE also maintains superior optimization performance under stringent accuracy constraints, achieving the highest HV Gain across all five benchmarks at 99\% SSIM retention.
+
+
+A representative DCT design preserves 99.62\% of the original SSIM while reducing area, power, and delay by 19.36\%, 20.68\%, and 9.70\%, respectively. End-to-end ablation studies further validate the effectiveness of iterative feedback, guided candidate selection, and latency modeling in improving the final optimization results. Together, these findings demonstrate the capability of ApproxPilot-SE to efficiently explore large approximate accelerator design spaces and achieve superior PPA--accuracy tradeoffs across different applications.
+
