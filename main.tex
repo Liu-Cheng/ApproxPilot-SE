@@ -33,13 +33,16 @@
 
 \hyphenation{ap-prox-i-mate ac-cel-er-a-tor sur-ro-gate mul-ti-ob-jec-tive non-dom-i-nat-ed}
 
-\title{ApproxPilot-SE: Co-Evolving Surrogate Models and DSE for Approximate Accelerators}
+\title{ApproxPilot-SE: Self-Evolving Design Space Exploration for Approximate Accelerators}
 
 \author{Yanzhe~Wang,
         Cheng~Liu,
         Fangfa~Fu,
         Bing~Yang
-        and~Jinxiang~Wang}
+        and~Jinxiang~Wang%
+\thanks{Yanzhe Wang, Fangfa Fu, and Jinxiang Wang are with Harbin Institute of Technology, China.}%
+\thanks{Cheng Liu is with North China Electric Power University, China.}%
+\thanks{Bing Yang is with Harbin University of Science and Technology, China.}}
 
 \begin{document}
 \maketitle
@@ -50,13 +53,11 @@
 
 
 \begin{abstract}
-Approximate computing improves the power, performance, and area (PPA) of hardware accelerators while maintaining acceptable application accuracy. However, the large design space and costly system-level evaluations make efficient design space exploration (DSE) challenging. Existing surrogate-based methods also require substantial training data to predict PPA and accuracy.
+Approximate computing improves accelerator power, performance, and area (PPA) by replacing various arithmetic units with the most appropriate approximate implementations while preserving application-level output quality. However, exploring the resulting combinatorial design space requires costly evaluations of the resulting hardware designs. Surrogate models enable efficient design space exploration (DSE) by predicting hardware cost and application quality without evaluating every candidate. Building accurate surrogates, however, often requires substantial labeled data for pretraining or training a separate model for each target accelerator. Acquiring these data incurs considerable evaluation time, even when performed offline.
 
-This paper presents ApproxPilot-SE, a framework that enables surrogate models and DSE to co-evolve through iterative feedback. Graph neural networks (GNNs) are used to predict PPA and application accuracy. During DSE, Pareto-relevant configurations are selected for logic synthesis and accuracy evaluation. The measured results are then used to update the surrogate models and guide subsequent search.
+This paper presents ApproxPilot-SE, a self-evolving DSE framework that begins exploration with surrogate models trained on a limited initial dataset. To support search before the models become sufficiently accurate, ApproxPilot-SE retrieves similar, previously measured configurations and uses their prediction residuals to calibrate latency estimates. A path-aware readout further captures circuit dependencies for latency prediction. During DSE, a Pareto-front-guided feedback mechanism selects promising configurations for logic synthesis and application-quality evaluation. The resulting measurements expand the training dataset and calibration reference set, enabling the surrogate models to evolve with successive DSE iterations and guide subsequent search.
 
-To improve latency prediction, we introduce a local latency calibration method. It uses nearby measured configurations to correct prediction errors and updates the calibration references as new data become available. A path-aware readout further captures circuit dependencies for latency prediction.
-
-Experiments on the discrete cosine transform (DCT) benchmark show the optimization performance of ApproxPilot-SE. At 90\% structural similarity index (SSIM) retention, ApproxPilot-SE achieves 3.79 times the PPA hypervolume gain of the stronger baseline with 720 training labels per method. With only 540 labels, it achieves 3.42 times the best baseline gain obtained with 900 labels, using 40\% fewer training labels.
+On a discrete cosine transform (DCT) accelerator, ApproxPilot-SE achieves 3.79 times the verified PPA hypervolume gain of the stronger baseline at 90\% structural similarity index (SSIM) retention with 720 training labels per method. With only 540 labels, it achieves 3.42 times the best baseline gain obtained with 900 labels, using 40\% fewer training labels. These results demonstrate improved approximate-accelerator optimization with fewer target-specific training samples.
 \end{abstract}
 
 
