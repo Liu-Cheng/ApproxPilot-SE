@@ -11,7 +11,7 @@ The number of possible assignments grows combinatorially with the number of conf
 In our evaluation, DCT and Laplace contain 76 and 60 configurable sites, with initial design spaces of approximately $3.26\times10^{91}$ and $1.77\times10^{72}$ configurations, respectively.
 Exploring such spaces requires distinguishing promising designs without synthesizing and executing every candidate.
 Yet the PPA and application quality needed to make these decisions are themselves expensive to obtain: logic synthesis evaluates hardware cost, and application execution measures the quality impact of the selected substitutions.
-Efficient design space exploration (DSE) therefore depends on how these evaluations are allocated.
+Efficient design space exploration (DSE) therefore depends on how these evaluations are conducted.
 
 Surrogate models address this challenge by predicting hardware cost and application quality for unevaluated configurations.
 AutoAx~\cite{mrazek2019autoax} uses learned predictors to support automated exploration of approximate-component assignments.
@@ -19,15 +19,15 @@ ApproxPilot~\cite{zhang2025approxpilot} employs graph neural networks (GNNs) to 
 ApproxGNN~\cite{vlcek2025approxgnn} learns reusable approximate-component representations and demonstrates transfer across related accelerator structures.
 These approaches enable many candidate configurations to be explored through inexpensive predictions rather than repeated hardware evaluations.
 However, obtaining accurate predictors can require substantial labeled data, collected either to train models for each target accelerator or to build a reusable pretrained model.
-Although pretraining costs can be amortized across targets, constructing the underlying dataset still requires expensive evaluations; target-specific training likewise incurs data-acquisition costs for the accelerator being optimized.
+Although pretraining costs can be amortized across targets, constructing the underlying dataset still requires expensive evaluations. Target-specific training likewise incurs data-acquisition costs for the accelerator being optimized.
 Performing this work offline does not remove its contribution to the overall design effort.
 
-This motivates a different use of the evaluation budget: begin DSE with a limited labeled dataset and improve the models using measurements selected during exploration.
+This motivates a different use of the evaluation budget. Basically, we may begin DSE with a limited labeled dataset and improve the models using measurements selected during exploration.
 The challenge is that early models may contain prediction bias that distorts candidate rankings and the apparent Pareto front.
 A promising predicted configuration may fail to deliver the expected PPA or output quality when evaluated, and repeatedly trusting such predictions can direct search toward misleading tradeoffs.
 The framework must therefore support useful exploration before the surrogates are broadly accurate and obtain feedback that is relevant to subsequent optimization.
 
-We present \textbf{ApproxPilot-SE}, a self-evolving DSE framework that combines measured-reference latency calibration with Pareto-guided evaluation and iterative surrogate training.
+To this end, we present ApproxPilot-SE, a self-evolving DSE framework that combines measured-reference latency calibration with Pareto-guided evaluation and iterative surrogate training.
 Starting from a limited set of measured configurations, configuration-aware GNNs predict accelerator PPA and application quality.
 During search, the framework retrieves similar measured configurations and uses their prediction residuals to calibrate latency estimates.
 This local correction anchors predictions to available measurements and can cancel a shared prediction-bias component when nearby configurations exhibit similar errors.
@@ -37,8 +37,8 @@ During DSE, Pareto-relevant candidates are selected for logic synthesis and appl
 These measurements establish the actual hardware cost and output quality of important candidate designs, reducing reliance on their predicted performance.
 The evaluated configurations expand both the surrogate training dataset and the latency-calibration reference set.
 The updated models and references then guide the next search round.
-In this closed loop, search determines where new measurements are acquired, and the measurements reshape the predictions used by subsequent search.
-We use \emph{self-evolving} to describe this feedback-driven adaptation of the complete DSE framework; its mechanism is the co-evolution of surrogate learning and design exploration.
+In this loop, search determines where new measurements are acquired, and the measurements reshape the predictions used by subsequent search.
+Essentially, we co-evolve the surrogate learning and design exploration, and achieve the self-evolving DSE framework.
 
 The main contributions of this work are summarized as follows:
 \begin{itemize}
