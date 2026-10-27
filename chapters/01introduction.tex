@@ -1,52 +1,56 @@
-
 \section{Introduction}
 \label{sec:introduction}
 
-\IEEEPARstart{A}{pproximate} computing exploits the error tolerance of applications to trade off output quality against hardware cost~\cite{jiang2020approxarith,que2023approxsurvey,xu2016approxsurvey}.
-For accelerators with multiple replaceable arithmetic units, combining approximate implementations at different locations creates a large number of candidate designs.
-However, evaluating each candidate through logic synthesis and application-level accuracy evaluation is computationally expensive.
-Prior studies therefore use surrogate models to replace many of these evaluations and improve the efficiency of approximate design space exploration (DSE).
-AutoAx~\cite{mrazek2019autoax} uses machine learning to predict the hardware cost and output quality of candidate designs, treating an accelerator composed of approximate arithmetic units as a black-box function.
-ApproxPilot~\cite{zhang2025approxpilot} introduces graph neural networks (GNNs) to improve prediction accuracy by modeling circuit topology and inferring critical-path information.
-ApproxGNN~\cite{vlcek2025approxgnn} enables model transfer by learning representations of approximate components and demonstrates the reuse of pretrained models across image convolution filters.
-These methods have substantially advanced surrogate-assisted approximate design.
-Building reliable surrogates for target circuits without suitable pretrained models requires large numbers of ground-truth labels.
-Constructing the training set of approximately 4,000 configurations for AutoAx required about 11 hours~\cite{mrazek2019autoax}.
-ApproxPilot used 105,000 design samples for each of the Gaussian and KMeans benchmarks~\cite{zhang2025approxpilot}, while the initial ApproxGNN dataset contained 15,900 synthesized configurations~\cite{vlcek2025approxgnn}.
-Efficient use of limited ground-truth evaluations is therefore essential for improving surrogate-assisted DSE.
+\IEEEPARstart{A}{pproximate} computing exploits application error tolerance to improve hardware power, performance, and area (PPA) while preserving acceptable output quality~\cite{jiang2020approxarith,que2023approxsurvey,xu2016approxsurvey}.
+For a domain-specific accelerator, these tradeoffs can be realized by replacing arithmetic units with appropriate approximate implementations drawn from a component library~\cite{mrazek2017evoapprox}.
+The design decisions include which arithmetic sites should remain exact, which should be approximated, and which implementation should be assigned to each approximated site.
+These choices are coupled: local errors propagate through the computation, while logic synthesis and interactions along circuit paths determine the hardware cost of the complete design.
+Consequently, selecting units solely from their individual error and cost characteristics does not establish the best accelerator-level PPA--quality tradeoff.
 
-With limited ground-truth labels, surrogate prediction errors can affect candidate ranking during multiobjective search.
-Existing approximate-accelerator frameworks primarily use measured data for offline model training.
-However, measurements obtained during DSE can provide additional information for subsequent optimization.
-They can be used to update surrogate models and correct predictions using nearby evaluated configurations.
-Combining these two mechanisms allows the search to benefit continuously from newly acquired measurements.
+The number of possible assignments grows combinatorially with the number of configurable sites and available implementations.
+In our evaluation, DCT and Laplace contain 76 and 60 configurable sites, with initial design spaces of approximately $3.26\times10^{91}$ and $1.77\times10^{72}$ configurations, respectively.
+Exploring such spaces requires distinguishing promising designs without synthesizing and executing every candidate.
+Yet the PPA and application quality needed to make these decisions are themselves expensive to obtain: logic synthesis evaluates hardware cost, and application execution measures the quality impact of the selected substitutions.
+Efficient design space exploration (DSE) therefore depends on how these evaluations are allocated.
 
-Building on this idea, we propose \textbf{ApproxPilot-SE}, a framework for optimizing approximate accelerators under a limited budget for ground-truth evaluations.
-The framework first uses a limited set of evaluated designs to train surrogate models for power, performance, and area (PPA) and application accuracy.
-It incorporates a path-aware readout to capture circuit dependencies for latency prediction.
-During multiobjective DSE, ApproxPilot-SE calibrates latency predictions using nearby measured configurations.
-It also periodically evaluates Pareto-relevant candidates and uses the resulting measurements to update the surrogates and guide subsequent search.
-Finally, the Pareto front is constructed from synthesis results and application accuracy measurements.
+Surrogate models address this challenge by predicting hardware cost and application quality for unevaluated configurations.
+AutoAx~\cite{mrazek2019autoax} uses learned predictors to support automated exploration of approximate-component assignments.
+ApproxPilot~\cite{zhang2025approxpilot} employs graph neural networks (GNNs) to model circuit topology and incorporates critical-path information into delay prediction.
+ApproxGNN~\cite{vlcek2025approxgnn} learns reusable approximate-component representations and demonstrates transfer across related accelerator structures.
+These approaches enable many candidate configurations to be explored through inexpensive predictions rather than repeated hardware evaluations.
+However, obtaining accurate predictors can require substantial labeled data, collected either to train models for each target accelerator or to build a reusable pretrained model.
+Although pretraining costs can be amortized across targets, constructing the underlying dataset still requires expensive evaluations; target-specific training likewise incurs data-acquisition costs for the accelerator being optimized.
+Performing this work offline does not remove its contribution to the overall design effort.
+
+This motivates a different use of the evaluation budget: begin DSE with a limited labeled dataset and improve the models using measurements selected during exploration.
+The challenge is that early models may contain prediction bias that distorts candidate rankings and the apparent Pareto front.
+A promising predicted configuration may fail to deliver the expected PPA or output quality when evaluated, and repeatedly trusting such predictions can direct search toward misleading tradeoffs.
+The framework must therefore support useful exploration before the surrogates are broadly accurate and obtain feedback that is relevant to subsequent optimization.
+
+We present \textbf{ApproxPilot-SE}, a self-evolving DSE framework that combines measured-reference latency calibration with Pareto-guided evaluation and iterative surrogate training.
+Starting from a limited set of measured configurations, configuration-aware GNNs predict accelerator PPA and application quality.
+During search, the framework retrieves similar measured configurations and uses their prediction residuals to calibrate latency estimates.
+This local correction anchors predictions to available measurements and can cancel a shared prediction-bias component when nearby configurations exhibit similar errors.
+A path-aware readout supports the underlying latency model by preserving directed circuit dependencies without requiring explicit critical-path labels.
+
+During DSE, Pareto-relevant candidates are selected for logic synthesis and application-quality evaluation.
+These measurements establish the actual hardware cost and output quality of important candidate designs, reducing reliance on their predicted performance.
+The evaluated configurations expand both the surrogate training dataset and the latency-calibration reference set.
+The updated models and references then guide the next search round.
+In this closed loop, search determines where new measurements are acquired, and the measurements reshape the predictions used by subsequent search.
+We use \emph{self-evolving} to describe this feedback-driven adaptation of the complete DSE framework; its mechanism is the co-evolution of surrogate learning and design exploration.
 
 The main contributions of this work are summarized as follows:
-
 \begin{itemize}
-    \item We develop ApproxPilot-SE, a framework that couples surrogate learning with multiobjective DSE through iterative ground-truth feedback.
-    Pareto-relevant configurations are evaluated through logic synthesis and accuracy evaluation.
-    The resulting data are used to update the surrogate models and guide subsequent search.
+    \item \textbf{A self-evolving framework for approximate accelerator DSE.}
+    ApproxPilot-SE couples multiobjective search with Pareto-guided acquisition of measured configurations and iterative surrogate retraining.
+    This process directs new training data toward optimization-relevant regions instead of relying exclusively on a model trained before exploration.
 
-    \item We propose a local latency calibration method to improve latency prediction.
-    The method uses nearby measured configurations to correct prediction errors and updates its calibration references as new measurements become available.
-    A path-aware readout further captures circuit dependencies without requiring explicit critical-path labels.
+    \item \textbf{Measured-reference local latency calibration.}
+    ApproxPilot-SE retrieves nearby evaluated configurations and uses their prediction residuals to correct latency estimates without an additional learned correction model.
+    Newly acquired measurements improve both the surrogate training set and the calibration reference set, while a path-aware readout provides structural support for latency prediction.
 
-    \item Our experimental evaluation on the DCT benchmark demonstrates the optimization performance and sample efficiency of ApproxPilot-SE.
-    At 90\% SSIM retention, it achieves 3.79 times the PPA hypervolume gain of the stronger baseline with 720 training labels per method.
-    With only 540 labels, it achieves 3.42 times the best baseline gain obtained with 900 labels, using 40\% fewer training labels.
+    \item \textbf{Ground-truth-verified evaluation across five accelerators.}
+    With 720 training configurations per method, ApproxPilot-SE achieves the highest or jointly highest PPA hypervolume gain in 24 of 25 benchmark--quality settings.
+    At 90\% structural similarity index (SSIM) retention, the geometric mean of its HV Gain ratios relative to the stronger baseline on each benchmark is 3.05.
 \end{itemize}
-
-The remainder of this paper is organized as follows.
-Section~\ref{sec:related} discusses related work.
-Section~\ref{sec:method} provides an overview of the ApproxPilot-SE framework and describes how surrogate learning and DSE interact through iterative ground-truth feedback.
-Section~\ref{sec:surrogate_modeling} presents the PPA and accuracy prediction models, with particular emphasis on local latency calibration and path-aware modeling.
-Section~\ref{sec:experiments} evaluates the optimization performance and sample efficiency of ApproxPilot-SE and investigates the contributions of its key components.
-Finally, Section~\ref{sec:conclusion} concludes the paper.
