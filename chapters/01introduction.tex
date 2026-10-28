@@ -2,7 +2,7 @@
 \label{sec:introduction}
 
 \IEEEPARstart{A}{pproximate} computing exploits application error tolerance to improve hardware power, performance, and area (PPA) while preserving acceptable output quality~\cite{jiang2020approxarith,que2023approxsurvey,xu2016approxsurvey}.
-For a domain-specific accelerator, these tradeoffs can be realized by replacing arithmetic units with appropriate approximate implementations drawn from a component library~\cite{mrazek2017evoapprox}.
+For a domain-specific accelerator, these tradeoffs can be realized by replacing arithmetic units with appropriate approximate implementations drawn from component libraries~\cite{mrazek2017evoapprox,ullah2018smapproxlib,mrazek2019autoax}.
 The design decisions include which arithmetic sites should remain exact, which should be approximated, and which implementation should be assigned to each approximated site.
 These choices are coupled: local errors propagate through the computation, while logic synthesis and interactions along circuit paths determine the hardware cost of the complete design.
 Consequently, selecting units solely from their individual error and cost characteristics does not establish the best accelerator-level PPA--quality tradeoff.
@@ -13,7 +13,10 @@ Exploring such spaces requires distinguishing promising designs without synthesi
 Yet the PPA and application quality needed to make these decisions are themselves expensive to obtain: logic synthesis evaluates hardware cost, and application execution measures the quality impact of the selected substitutions.
 Efficient design space exploration (DSE) therefore depends on how these evaluations are conducted.
 
-Surrogate models address this challenge by predicting hardware cost and application quality for unevaluated configurations.
+Surrogate models address this challenge by estimating hardware cost without running the complete hardware evaluation flow for every candidate.
+Beyond approximate computing, learned models have been developed for high-level synthesis performance prediction~\cite{wu2022hls_gnn}, RTL-level area, power, and timing prediction~\cite{xu2022sns}, and early-stage power estimation for FPGA designs~\cite{lin2022powergear}.
+These studies demonstrate the broader use of prediction models to reduce reliance on expensive synthesis and implementation evaluations.
+For approximate accelerators, the models must additionally estimate how arithmetic substitutions affect application quality.
 AutoAx~\cite{mrazek2019autoax} uses learned predictors to support automated exploration of approximate-component assignments.
 ApproxPilot~\cite{zhang2025approxpilot} employs graph neural networks (GNNs) to model circuit topology and incorporates critical-path information into delay prediction.
 ApproxGNN~\cite{vlcek2025approxgnn} learns reusable approximate-component representations and demonstrates transfer across related accelerator structures.
@@ -47,6 +50,6 @@ The main contributions of this work are summarized as follows:
     \item ApproxPilot-SE retrieves nearby evaluated configurations and uses their prediction residuals to correct latency estimates without an additional learned correction model.
     Newly acquired measurements improve both the surrogate training set and the calibration reference set, while a path-aware readout provides structural support for latency prediction.
 
-    \item With 720 training configurations per method, ApproxPilot-SE achieves the highest or jointly highest PPA hypervolume gain in 24 of 25 benchmark--quality settings.
+    \item With 720 training configurations per method, ApproxPilot-SE achieves the highest PPA hypervolume gain in 24 of 25 benchmark--quality settings.
     At 90\% structural similarity index (SSIM) retention, the geometric mean of its HV Gain ratios relative to the stronger baseline on each benchmark is 3.05.
 \end{itemize}

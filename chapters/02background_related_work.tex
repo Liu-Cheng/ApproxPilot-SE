@@ -1,4 +1,4 @@
-\section{Background and Related Work}
+\section{Related Work}
 \label{sec:related}
 
 \begin{table*}[t]
@@ -50,30 +50,21 @@
         & \xmark
         & \cmark \\
 
-        Gate-level component embeddings
-        & \xmark
+        \midrule
+
+        Path-aware modeling
         & \xmark
         & \cmark
         & \xmark
-        & \xmark \\
-
-        \midrule
-
-        Path modeling
         & \xmark
-        & \shortstack{Critical-path\\node prediction}
-        & \xmark
-        & \xmark
-        & \shortstack{\textbf{Path-aware}\\
-                      \textbf{aggregation}} \\
+        & \cmark \\
 
         Prediction calibration
         & \xmark
         & \xmark
-        & \shortstack{Global\\offset}
+        & \cmark
         & \xmark
-        & \shortstack{\textbf{Local reference}\\
-                      \textbf{calibration}} \\
+        & \cmark \\
 
         Search-time surrogate updates
         & \xmark
@@ -88,86 +79,59 @@
     
 \end{table*}
 
-\subsection{Automated Design of Approximate Accelerators}
+\subsection{Automated Optimization of Approximate Accelerators}
 
-The automated design of approximate accelerators involves two closely related tasks: developing arithmetic units with different error characteristics and hardware costs, and determining how to combine these units within a complete accelerator.
-EvoApprox8b~\cite{mrazek2017evoapprox} targets ASIC implementations and contains 430 nondominated 8-bit approximate adders and 471 nondominated 8-bit approximate multipliers.
-SMApproxLib~\cite{ullah2018smapproxlib}, in contrast, targets FPGAs and is the first open-source library of FPGA-based approximate multipliers.
-Rather than selecting components from a predefined library, ABACUS~\cite{nepal2014abacus} applies approximation transformations directly to behavioral hardware descriptions to identify Pareto-optimal designs in the accuracy--power tradeoff.
-These approaches define searchable design spaces through either component selection or design transformation.
+Automated approximate-accelerator design determines how approximation should be introduced while balancing hardware efficiency and application quality.
+Component libraries, including EvoApprox8b~\cite{mrazek2017evoapprox} and SMApproxLib~\cite{ullah2018smapproxlib}, provide arithmetic implementations with different error and hardware characteristics.
+At the accelerator level, the optimization must decide where approximation is acceptable and how the selected implementations interact within the complete computation.
+ABACUS~\cite{nepal2014abacus} explores behavioral approximation transformations, whereas library-based methods search over assignments of approximate arithmetic components.
+AutoAx~\cite{mrazek2019autoax} combines learned cost and quality predictors with automated configuration search.
+AxHLS~\cite{castrogodinez2020axhls} integrates approximate functional units into high-level synthesis (HLS), using analytical models to estimate resources and accuracy.
+ApproxFPGAs~\cite{prabakaran2020approxfpgas} investigates the use of ASIC-oriented approximate components in FPGA systems, while Xel-FPGAs~\cite{prabakaran2023xelfpgas} adopts a multistage flow from arithmetic components to approximate functional modules and accelerator optimization.
 
-Candidate evaluation is a key factor in determining how many configurations can be explored.
-AutoAx~\cite{mrazek2019autoax} trains system-level prediction models using the hardware and error characteristics of arithmetic units.
-It evaluates configurations through these surrogates during combinatorial search and performs ground-truth evaluations of the shortlisted candidates.
-AxHLS~\cite{castrogodinez2020axhls} integrates approximate functional units with high-level synthesis (HLS), using analytical models to estimate resource requirements and design accuracy.
-For FPGAs, ApproxFPGAs~\cite{prabakaran2020approxfpgas} investigates the adaptation and exploration of approximate arithmetic components originally developed for ASICs, using machine learning to reduce the time required to identify an optimal set of approximate components for FPGA implementation.
-Xel-FPGAs~\cite{prabakaran2023xelfpgas} adopts a multistage design flow in which basic arithmetic components are composed into approximate functional modules, which are subsequently used for system-level optimization.
+Learning-based frameworks further exploit circuit structure.
+ApproxPilot~\cite{zhang2025approxpilot} uses accelerator graphs to predict PPA and application quality and incorporates critical-path supervision into delay modeling.
+ApproxGNN~\cite{vlcek2025approxgnn} learns gate-level component embeddings and transfers predictive models across related accelerator structures.
+These approaches address complementary aspects of automated approximation: design transformation, component assignment, synthesis integration, structural prediction, and representation reuse.
+However, a larger component-assignment space increases the difficulty of identifying useful PPA--quality tradeoffs, and predictive evaluation still depends on the training data available for the target problem.
+The relevant question for this work is how measured configurations can support both reliable exploration and continued model improvement under a limited evaluation budget.
 
-\subsection{Hardware Performance and Output Quality Modeling}
+\subsection{Surrogate-Assisted Design Space Exploration}
 
-System-level performance prediction requires relating local operation characteristics to the dependencies within a design.
-Graph representations provide a natural basis for modeling these relationships.
-Wu et al.~\cite{wu2022hls_gnn} represent C/C++ programs as graphs, introduce a benchmark suite of 40,000 synthesizable C programs, and develop a hierarchical GNN for hardware performance prediction.
-SNS~\cite{xu2022sns} predicts area, power, and timing from RTL designs.
-It extracts a graph intermediate representation (GraphIR) from Verilog, uses a lightweight Transformer model, Circuitformer, to predict path-level PPA, and aggregates these predictions into circuit-level estimates through a simple multilayer perceptron (MLP).
-By extending model inputs from aggregate statistics to structured design representations, these methods enable models to learn how local operations relate to the overall hardware implementation.
+Surrogate-assisted DSE reduces evaluation cost by using predictive models to rank candidate designs and identify configurations for expensive evaluation.
+In a train-then-search workflow, a model is constructed before the main optimization and subsequently used to score a much larger set of candidates, as in AutoAx and ApproxPilot~\cite{mrazek2019autoax,zhang2025approxpilot}.
+This organization makes search efficient, but its decisions depend on the coverage and accuracy of the initial model.
+When the search concentrates on regions poorly represented in the training data, prediction errors can distort the apparent Pareto front and the selection of promising designs.
 
-The organization of structural information should also reflect the prediction target.
-PowerGear~\cite{lin2022powergear} incorporates activity information and connectivity between operations into a heterogeneous edge-centric graph model.
-Its edge-centric neighborhood aggregation captures edge semantics and structural properties for power estimation in HLS-based FPGA designs.
-For delay modeling, the mapping of operations to hardware resources and the order of signal propagation are particularly important.
-Ustun et al.~\cite{ustun2020delay} use GNNs to identify operation-to-resource mapping patterns on FPGAs to support operation delay prediction.
-Guo et al.~\cite{guo2022timingpredict} introduce TimingPredict for pre-routing timing prediction, using edge-delay prediction as a local auxiliary task to improve model performance.
-Compared with generic graph-level aggregation, these methods incorporate target-specific hardware dependencies into the modeling process.
+Sequential optimization instead alternates candidate selection, real evaluation, and surrogate updates.
+ParEGO~\cite{knowles2006parego} uses scalarization and expected improvement for expensive multiobjective optimization, while HyperMapper~\cite{nardi2019hypermapper} combines objective regression with feasibility classification for constrained design spaces.
+TuRBO~\cite{eriksson2019turbo} uses local models and adaptive trust regions to concentrate evaluations.
+For hardware DSE, Reagen et al.~\cite{reagen2017bayesopt} apply Bayesian optimization to accelerator design, and BOOM-Explorer~\cite{bai2021boomexplorer} combines active learning with multiobjective Bayesian optimization for processor microarchitectures.
+ARS-Flow and ARS-Flow 2.0~\cite{huang2024arsflow,huang2025arsflow2} use active learning and Pareto-region resampling for accelerator-rich systems.
+Together, these studies motivate selecting measurements according to optimization progress rather than relying exclusively on a fixed initial dataset.
 
-Approximate accelerators also require models of how arithmetic errors affect application outputs.
-Mo et al.~\cite{mo2024errorfeatures} study the relationship between the error characteristics of approximate multipliers and accuracy loss in neural network inference.
-They rank statistical error features by importance and use these features to predict the inference accuracy loss induced by approximate multipliers.
+The surrogate implementation provides another important distinction.
+AutoAx uses random forests over engineered component features~\cite{mrazek2019autoax}, offering inexpensive configuration-level prediction whose expressiveness depends on the structural and error information encoded in the inputs.
+Gaussian-process models support acquisition decisions through predictive distributions~\cite{knowles2006parego,eriksson2019turbo,bai2021boomexplorer}, but their suitability depends on the design representation and covariance assumptions.
+GNNs explicitly incorporate circuit connectivity.
+ApproxPilot~\cite{zhang2025approxpilot} combines arithmetic-unit properties and error descriptors with accelerator topology and uses critical-path supervision for delay prediction.
+ApproxGNN~\cite{vlcek2025approxgnn} learns gate-level component embeddings for transfer across related accelerator structures.
+Such structural representations capture interactions beyond aggregate component statistics, while their predictive accuracy still depends on the available labeled designs and the relationship between training and target configurations.
 
-Hardware cost features and numerical error features serve different modeling purposes.
-Our prior work, ApproxPilot~\cite{zhang2025approxpilot}, combines structural modeling with error characterization.
-It represents arithmetic units as nodes and their connections as edges, encoding unit-level PPA, operation types, and error metrics as node features.
-To capture the path dependence of delay, ApproxPilot adopts a two-stage model.
-The first stage performs node-level classification to identify arithmetic nodes on the critical path.
-The second stage augments the original node features with the classification results and performs graph-level regression to predict accelerator PPA and output quality.
-The critical-path node labels are obtained from synthesis reports.
-Together, these studies demonstrate the value of circuit structure for fast performance estimation and highlight the importance of path information in delay modeling.
+Hardware-cost predictors illustrate how these representations can be tailored to different objectives.
+Graph-based models have been developed for HLS performance~\cite{wu2022hls_gnn}, RTL-level PPA~\cite{xu2022sns}, and FPGA power estimation~\cite{lin2022powergear}.
+Operation-delay and pre-routing timing models incorporate dependencies relevant to signal propagation~\cite{ustun2020delay,guo2022timingpredict}, while arithmetic-error features support application-accuracy prediction~\cite{mo2024errorfeatures}.
+These studies reduce repeated synthesis and implementation effort, but accurate prediction alone is a different objective from identifying the best hardware--quality tradeoffs with a limited measurement budget.
 
-\subsection{Surrogate Model Adaptation and Prediction Calibration}
+Model adaptation and calibration address discrepancies between predictions and target measurements.
+ApproxGNN investigates target-domain fine-tuning and a global additive correction for transferred quality predictions~\cite{vlcek2025approxgnn}.
+Fine-tuning adapts the learned mapping using target labels, whereas a uniform additive correction compensates for a shared shift without changing pairwise prediction differences.
+This distinction matters for DSE because candidate ranking depends on relative predictions, and prediction errors need not be uniform across the explored configurations.
 
-Model adaptation seeks to transfer learned representations and predictive mappings to new target designs.
-ApproxGNN~\cite{vlcek2025approxgnn} learns transferable component representations by jointly training a component embedding network and a system-level prediction network.
-The embedding network processes gate-level Verilog descriptions of approximate arithmetic units to generate feature vectors.
-The prediction network operates on the accelerator graph, using component embeddings and structural information to predict quality of results (QoR) and hardware cost.
-For each training batch, the embedding network first processes the entire component library, and the resulting embeddings are inserted into the accelerator graph as node features.
-Gradients propagate through both networks, allowing the embedding network to be trained despite the limited number of distinct components in the library.
+Table~\ref{tab:method_comparison} summarizes these complementary capabilities.
+AutoAx provides feature-based cost and quality prediction; ApproxPilot adds circuit and path information; ApproxGNN supports transferable representations and calibration; and ARS-Flow 2.0 incorporates model updates during optimization.
+For the approximate-accelerator methods compared here, structural modeling and transfer improve predictive capability, but do not by themselves ensure reliable search with sparse target labels or adapt predictions to newly explored regions.
+Sequential hardware DSE provides useful sampling and update strategies, while leaving the question of how best to combine them with configuration-dependent correction for joint PPA and application-quality optimization.
 
-In its transfer experiments, ApproxGNN constructs a source-domain dataset, denoted 16K, from randomly generated $3 \times 3$ convolution accelerators.
-The trained models are then transferred to the Small Gaussian and Large Gaussian filters, neither of which is included in the source-domain dataset.
-To mitigate systematic underestimation of PSNR after transfer, a uniform additive offset is estimated from a small set of randomly selected target samples.
-This correction leaves pairwise prediction differences and candidate rankings unchanged.
-ApproxGNN also investigates target-domain fine-tuning, either updating only the system-level prediction network or jointly updating the component embedding and prediction networks~\cite{vlcek2025approxgnn}.
-
-\subsection{Design Space Exploration}
-
-In surrogate-assisted DSE, the training dataset can be updated as the search progresses.
-ParEGO~\cite{knowles2006parego} addresses multiobjective optimization with expensive evaluations by combining the objectives through augmented Tchebycheff scalarization, fitting a Gaussian process surrogate, and selecting new evaluation points using expected improvement.
-HyperMapper 2.0~\cite{nardi2019hypermapper} handles design spaces with discrete variables and unknown feasibility constraints through separate regression models for objective values and classification models for feasibility.
-It has been applied to the automatic tuning of hardware accelerators expressed in the Spatial programming language.
-TuRBO~\cite{eriksson2019turbo} builds Gaussian process models within local trust regions, adapts the size of each region according to optimization progress, and allocates evaluation resources among multiple local searches.
-These methods provide a general foundation for surrogate-assisted optimization.
-
-Hardware design studies further integrate these iterative optimization methods with domain-specific design variables and evaluation flows.
-Reagen et al.~\cite{reagen2017bayesopt} use multiobjective Bayesian optimization to explore the tradeoff between inference accuracy and energy consumption in deep neural network accelerators, treating numerical precision as a design variable.
-BOOM-Explorer~\cite{bai2021boomexplorer} targets the RISC-V BOOM microarchitecture and combines active learning, deep-kernel Gaussian processes, and multiobjective Bayesian optimization.
-Its acquisition function is based on expected improvement in Pareto hypervolume.
-For systems integrating multiple accelerators, ARS-Flow~\cite{huang2024arsflow} combines Pareto-region random resampling with a multiobjective genetic algorithm whose hyperparameters are controlled adaptively.
-Building on this framework, ARS-Flow 2.0~\cite{huang2025arsflow2} uses particle swarm optimization to enhance Gaussian process regression and iteratively updates the surrogate through active learning and Pareto-region resampling.
-These studies link the selection of designs for ground-truth evaluation to the regions of the design space that are most relevant to optimization.
-
-ApproxPilot-SE builds on this sequential optimization foundation by coupling measured-reference local calibration with surrogate updates during approximate-accelerator DSE.
-Each new measurement expands both the training set and the local reference set, supporting global model updates and differential delay correction for subsequent candidates.
-Table~\ref{tab:method_comparison} compares representative approaches
-in terms of surrogate models, prediction targets, structural
-representations, calibration mechanisms, and search-time model updates.
-
+These observations motivate ApproxPilot-SE: a framework that supports exploration from limited initial data by combining similar-configuration retrieval and local latency calibration with Pareto-guided evaluation and iterative surrogate training.
+The same new measurements provide calibration references and training labels, coupling correction of current predictions with refinement of subsequent search models.
