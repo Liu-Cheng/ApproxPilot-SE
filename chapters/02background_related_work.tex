@@ -1,83 +1,6 @@
 \section{Related Work}
 \label{sec:related}
 
-\begin{table*}[t]
-    \caption{Comparison of representative surrogate-assisted
-    hardware design space exploration approaches.}
-    \label{tab:method_comparison}
-    \centering
-    \footnotesize
-    \setlength{\tabcolsep}{4pt}
-    \renewcommand{\arraystretch}{1.18}
-
-    \begin{tabular*}{\textwidth}{
-        @{\extracolsep{\fill}}lccccc@{}
-    }
-        \toprule
-        \textbf{Feature}
-        & \textbf{AutoAx}
-        & \textbf{ApproxPilot}
-        & \textbf{ApproxGNN}
-        & \textbf{ARS-Flow 2.0}
-        & \shortstack{\textbf{ApproxPilot-SE}\\\textbf{(Ours)}} \\
-        \midrule
-
-        Surrogate model
-        & RF
-        & GNN
-        & GNN
-        & PSOGPR
-        & \textbf{GNN} \\
-
-        Hardware cost prediction
-        & \cmark
-        & \cmark
-        & \cmark
-        & \cmark
-        & \cmark \\
-
-        Approximation quality prediction
-        & \cmark
-        & \cmark
-        & \cmark
-        & N/A
-        & \cmark \\
-
-        Circuit-graph modeling
-        & \xmark
-        & \cmark
-        & \cmark
-        & \xmark
-        & \cmark \\
-
-        \midrule
-
-        Path-aware modeling
-        & \xmark
-        & \cmark
-        & \xmark
-        & \xmark
-        & \cmark \\
-
-        Prediction calibration
-        & \xmark
-        & \xmark
-        & \cmark
-        & \xmark
-        & \cmark \\
-
-        Search-time surrogate updates
-        & \xmark
-        & \xmark
-        & \xmark
-        & \cmark
-        & \cmark \\
-
-        \bottomrule
-    \end{tabular*}
-
-    
-\end{table*}
 
 \subsection{Automated Optimization of Approximate Accelerators}
 
@@ -128,7 +51,6 @@ ApproxGNN investigates target-domain fine-tuning and a global additive correctio
 Fine-tuning adapts the learned mapping using target labels, whereas a uniform additive correction compensates for a shared shift without changing pairwise prediction differences.
 This distinction matters for DSE because candidate ranking depends on relative predictions, and prediction errors need not be uniform across the explored configurations.
 
-Table~\ref{tab:method_comparison} summarizes these complementary capabilities.
 AutoAx provides feature-based cost and quality prediction; ApproxPilot adds circuit and path information; ApproxGNN supports transferable representations and calibration; and ARS-Flow 2.0 incorporates model updates during optimization.
 For the approximate-accelerator methods compared here, structural modeling and transfer improve predictive capability, but do not by themselves ensure reliable search with sparse target labels or adapt predictions to newly explored regions.
 Sequential hardware DSE provides useful sampling and update strategies, while leaving the question of how best to combine them with configuration-dependent correction for joint PPA and application-quality optimization.

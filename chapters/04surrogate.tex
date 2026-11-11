@@ -1,16 +1,10 @@
 
-\section{Surrogate Modeling}
-\label{sec:surrogate_modeling}
+\section{Surrogate Models}
+\label{sec:surrogate_models}
 
-To efficiently evaluate accelerator configurations during DSE, ApproxPilot-SE employs two graph-based surrogate models. Given an accelerator configuration, the PPA model predicts its area, power, and latency, while the accuracy model estimates its application-level accuracy. Since latency depends on the paths formed by interconnected arithmetic operations, we introduce a path-aware readout and use nearby measured configurations to calibrate its predictions. During exploration, Pareto-relevant configurations are selected for real evaluation, and their measured results are used to update the surrogate models and calibration references. The surrogate models, latency calibration, and iterative feedback methods are detailed in the following subsections.
+To efficiently evaluate accelerator configurations during DSE, ApproxPilot-SE employs two graph-based surrogate models. Given an accelerator configuration, the PPA model predicts its area, power, and latency, while the accuracy model estimates its application-level accuracy. These models provide fast estimates of the system-level behavior of candidate configurations without requiring logic synthesis and application-level execution for every design.
 
-
-\subsection{Surrogate Models}
-\label{subsec:surrogate_models}
-
-ApproxPilot-SE employs separate graph-based surrogates for PPA and application accuracy prediction. Following ApproxPilot~\cite{zhang2025approxpilot}, the target accelerator is represented as a graph in which arithmetic operations are nodes and their dependencies are edges. Different configurations share the accelerator topology, while their node features change according to the selected arithmetic units.
-
-For a configuration $\mathbf{x}$, the two graph inputs are
+Following ApproxPilot~\cite{zhang2025approxpilot}, the target accelerator is represented as a graph in which arithmetic operations are nodes and their dependencies are edges. Different configurations share the accelerator topology, while their node features change according to the selected arithmetic units. For a configuration $\mathbf{x}$, the two graph inputs are
 \begin{equation}
     G_k(\mathbf{x})
     =
@@ -20,40 +14,55 @@ For a configuration $\mathbf{x}$, the two graph inputs are
 \end{equation}
 where $P$ and $S$ denote the PPA and accuracy branches, respectively. The node set $V$ represents arithmetic operations, $E_k$ describes their dependencies, and $X_k(\mathbf{x})$ contains the configuration-dependent features.
 
-The PPA surrogate uses a GNN to learn circuit representations from graph structure and node features. Separate readouts are used to predict area, power, and latency, with a path-aware readout designed for latency prediction. Its node features include operation type, bit width, signedness, graph depth, and connectivity information. Pre-characterized unit-level area, power, and latency are included together with their exact-unit references. Configuration-level features summarize the distribution of approximate units and their aggregate hardware characteristics.
+The two surrogate models use different graph structures and features to capture hardware cost and application accuracy. The PPA model uses circuit structure and unit-level hardware characteristics to predict area, power, and latency. The accuracy model additionally uses arithmetic error characteristics to estimate the effect of approximation on application outputs. Representative input features are summarized in Table~\ref{tab:node_features}.
 
-The accuracy surrogate uses a separate GNN to learn the relationship between arithmetic approximation and application accuracy. It predicts the SSIM of each evaluation image, and the average is used as the configuration-level accuracy. It uses the application graph and additional approximation features. These include unit identity and arithmetic error metrics such as mean absolute error (MAE), mean square error (MSE), error rate, and maximum absolute error. The error metrics describe the numerical behavior of the selected units, while the graph captures their positions in the application computation. Representative features are summarized in Table~\ref{tab:node_features}.
 
 \begin{table}[t]
 \centering
-\caption{Representative features of the surrogate models.}
+\caption{Representative node features used by the surrogate models.}
 \label{tab:node_features}
 \footnotesize
-\renewcommand{\arraystretch}{1.1}
-\begin{tabular}{p{0.27\columnwidth}p{0.62\columnwidth}}
-\hline
-\textbf{Feature Group} & \textbf{Description} \\
-\hline
-Structure &
-Operation type, bit width, signedness, graph depth, and connectivity \\
-Hardware &
-Unit-level area, power, latency, and exact-unit references \\
-Approximation &
-Selected-unit identity and arithmetic error metrics \\
-Configuration &
-Approximate-unit distribution and aggregate hardware features \\
-\hline
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{p{0.20\columnwidth}p{0.25\columnwidth}p{0.43\columnwidth}}
+\toprule
+\textbf{Category} & \textbf{Node Feature} & \textbf{Description} \\
+\midrule
+\multirow{4}{*}{PPA}
+& Area & Area of the arithmetic unit \\
+& Power & Power of the arithmetic unit \\
+& Latency & Delay of the arithmetic unit \\
+& Compute Type & Operation type (add, sub, mul) \\
+\midrule
+\multirow{4}{*}{Accuracy}
+& MAE & Mean absolute error \\
+& MRE & Mean relative error \\
+& MSE & Mean squared error \\
+& WCE & Worst-case relative error \\
+\bottomrule
 \end{tabular}
 \end{table}
 
 
 
 
-Unlike area and power, latency depends strongly on the paths formed by connected arithmetic operations. We therefore introduce a path-aware readout and local calibration mechanism for latency prediction.
 
-\subsection{Latency Calibration}
-\label{subsec:latency_calibration}
 
+\subsection{Area and power}
+\label{subsec:Area and power}
+
+The PPA surrogate uses a GNN to learn circuit representations from the graph structure and node features described above. The graph encoder propagates information along directed dependencies to capture interactions between arithmetic operations.
+
+Area and power are predicted using separate graph-level readouts. Each readout aggregates the encoded node representations for its corresponding objective. The resulting representation is combined with configuration-level features and passed to an independent regression head to predict system-level area or power.
+
+
+
+
+
+
+\subsection{Latency}
+\label{subsec:latency}
+Unlike area and power, latency depends strongly on the paths formed by connected arithmetic operations. To improve latency prediction, ApproxPilot-SE combines a path-aware readout with local calibration using previously measured configurations.
 
 
 \noindent\textit{1) Local Calibration:}
@@ -105,7 +114,7 @@ Let $d_{\max}$ denote the maximum calibration distance. The calibrated latency e
     \label{eq:se_latency_calibration}
 \end{equation}
 
-The fully exact configuration retains its measured latency. If no reference lies within the calibration neighborhood, the direct surrogate prediction is used.
+ If no reference lies within the calibration neighborhood, the direct surrogate prediction is used.
 
 For a candidate with an applicable reference, Eq.~\ref{eq:se_latency_calibration} becomes
 \begin{equation}
@@ -162,223 +171,54 @@ The calibrated error then becomes
 
 The shared bias is canceled, leaving the difference between the local error components. This provides the basis for using nearby measured configurations to correct latency estimates.
 
-The calibration requires no additional learned correction model. It only modifies latency predictions. 
+
 
 
 
 \noindent\textit{2) Path-Aware Readout:}
 To capture arithmetic dependencies in latency prediction, we apply a path-aware readout to the node representations produced by the PPA encoder. Inspired by max-plus propagation in timing analysis, the readout accumulates hidden representations along arithmetic dependencies in topological order:
 \begin{equation}
-\mathbf{s}_{v,d}=
+\mathbf{s}_v=
 \begin{cases}
-\mathbf{h}_v, & \operatorname{Pred}_d(v)=\varnothing,\\
-\mathbf{h}_v+\displaystyle\max_{u\in\operatorname{Pred}_d(v)}
-\mathbf{s}_{u,d}, & \text{otherwise},
+\mathbf{h}_v, & \operatorname{Pred}(v)=\varnothing,\\
+\mathbf{h}_v+\displaystyle\max_{u\in\operatorname{Pred}(v)}
+\mathbf{s}_u, & \text{otherwise},
 \end{cases}
 \label{eq:se_path_aggregation}
 \end{equation}
-where $\mathbf{h}_v$ is the representation of node $v$, $d$ indexes an acyclic timing group $G_d=(V_d,E_d)$, and $\operatorname{Pred}_d(v)$ denotes its predecessors within that group. The maximum is applied element-wise. The graph-level path representation is obtained as $\mathbf{z}_L=\max_d\max_{v\in V_d}\mathbf{s}_{v,d}$ and used for latency prediction without explicit critical-path labels.
-
-
-
-
-
-
-\subsection{Iterative Feedback}
-\label{subsec:iterative_feedback}
-
-\noindent\textit{1) Feedback Selection:}
-At round $t$, the current surrogates and latency calibration provide the predicted objective vector
+where $\mathbf{h}_v$ is the representation of node $v$, and $\operatorname{Pred}(v)$ denotes its predecessor nodes in the PPA graph $G_P$. The maximum is applied element-wise. The graph-level path representation is obtained as
 \begin{equation}
-    \widehat{\mathbf f}_t(\mathbf{x})
+    \mathbf{z}_L=\max_{v\in V}\mathbf{s}_v,
+\end{equation}
+and used for latency prediction without requiring explicit critical-path labels.
+
+
+
+
+
+
+
+
+\subsection{Accuracy}
+\label{subsec:accuracy}
+
+Application-level accuracy is determined by how local approximation errors propagate through the accelerator and affect its outputs. ApproxPilot-SE employs a separate GraphSAGE model to capture this relationship using the application graph and approximation-related features described above. The model learns how arithmetic-unit assignments and their error characteristics affect the overall application accuracy.
+
+For a given configuration $\mathbf{x}$, the model predicts SSIM for each evaluation image. The configuration-level accuracy is obtained by averaging these predictions:
+\begin{equation}
+    \widehat{\mathrm{Acc}}(\mathbf{x})
     =
-    \left(
-    \frac{\widehat A_t(\mathbf{x})}{A_{\mathrm{ex}}},
-    \frac{\widehat P_t(\mathbf{x})}{P_{\mathrm{ex}}},
-    \frac{\widetilde L_t(\mathbf{x})}{L_{\mathrm{ex}}},
-    1-\widehat{\mathrm{Acc}}_t(\mathbf{x})
-    \right).
-    \label{eq:se_predicted_objectives}
+    \frac{1}{M}
+    \sum_{j=1}^{M}
+    \widehat{\mathrm{SSIM}}_j(\mathbf{x}),
+    \label{eq:se_accuracy_prediction}
 \end{equation}
+where $M$ is the number of evaluation images and $\widehat{\mathrm{SSIM}}_j(\mathbf{x})$ denotes the predicted SSIM for image $j$. The resulting accuracy estimate is used together with the PPA predictions during DSE.
 
-NSGA-III uses these objectives to generate an archive of candidate configurations. Feedback selection is then performed on the unique configurations that have not received real evaluation. Let $\mathcal{U}_t$ denote this candidate set.
 
-ApproxPilot-SE combines Pareto-relevant candidate selection with accuracy-boundary exploration. The predicted accuracy retention of configuration $\mathbf{x}$ is
-\begin{equation}
-    \widehat r_t(\mathbf{x})
-    =
-    \frac{\widehat{\mathrm{Acc}}_t(\mathbf{x})}
-    {\mathrm{Acc}_{\mathrm{ex}}},
-    \label{eq:se_predicted_retention}
-\end{equation}
-where $\mathrm{Acc}_{\mathrm{ex}}$ is the measured accuracy of the fully exact configuration.
 
-Given an acquisition threshold $\tau_{\mathrm{acq}}$, the candidate set is partitioned into
-\begin{equation}
-\begin{aligned}
-    \mathcal{U}_t^{+}
-    &=
-    \left\{
-    \mathbf{x}\in\mathcal{U}_t
-    \mid \widehat r_t(\mathbf{x})
-    \ge\tau_{\mathrm{acq}}
-    \right\},\\
-    \mathcal{U}_t^{-}
-    &=
-    \left\{
-    \mathbf{x}\in\mathcal{U}_t
-    \mid \widehat r_t(\mathbf{x})
-    <\tau_{\mathrm{acq}}
-    \right\}.
-\end{aligned}
-\label{eq:se_feedback_partition}
-\end{equation}
 
-Main feedback candidates are selected from $\mathcal{U}_t^{+}$. They are ranked using nondominated sorting of the predicted objectives. Lower-ranked fronts receive priority. Within a partially selected front, crowding distance is used to preserve diversity.
 
-Boundary candidates are selected from $\mathcal{U}_t^{-}$. Their proximity to the accuracy threshold is defined as
-\begin{equation}
-    \Delta_t(\mathbf{x})
-    =
-    \tau_{\mathrm{acq}}
-    -
-    \widehat r_t(\mathbf{x}),
-    \qquad
-    \mathbf{x}\in\mathcal{U}_t^{-}.
-    \label{eq:se_boundary_distance}
-\end{equation}
 
-Candidates with smaller $\Delta_t$ are selected first, prioritizing configurations immediately below the predicted accuracy boundary.
 
-Let $b_t$ denote the feedback budget at round $t$, and let $\beta$ be the maximum fraction allocated to boundary exploration. The candidate allocation is
-\begin{equation}
-\begin{aligned}
-    b_t^{\mathrm{bd}}
-    &=
-    \min
-    \left(
-    \left\lfloor\beta b_t\right\rfloor,
-    |\mathcal{U}_t^{-}|
-    \right),\\
-    b_t^{\mathrm{main}}
-    &=
-    b_t-b_t^{\mathrm{bd}}.
-\end{aligned}
-\label{eq:se_feedback_allocation}
-\end{equation}
 
-The main group receives the remaining feedback slots. When fewer boundary candidates are available, the unused boundary slots are assigned to the main group.
-
-Let $\mathcal{S}_t^{\mathrm{main}}$ and $\mathcal{S}_t^{\mathrm{bd}}$ denote the selected main and boundary configurations, respectively. The feedback set is
-\begin{equation}
-    \mathcal{S}_t
-    =
-    \mathcal{S}_t^{\mathrm{main}}
-    \cup
-    \mathcal{S}_t^{\mathrm{bd}}.
-    \label{eq:se_feedback_set}
-\end{equation}
-
-Both groups undergo system-level logic synthesis and application-level accuracy evaluation. Feedback acquisition is performed after surrogate-guided search and is distinct from NSGA-III population selection.
-
-\noindent\textit{2) Model Updates:}
-Let $\mathcal{D}_t$ denote the cumulative measured training set at round $t$. The selected configurations provide new measured labels
-\begin{equation}
-    \mathcal{Y}_t
-    =
-    \left\{
-    (\mathbf{x},\mathbf{y}(\mathbf{x}))
-    \mid
-    \mathbf{x}\in\mathcal{S}_t
-    \right\},
-    \label{eq:se_feedback_measurements}
-\end{equation}
-where $\mathbf{y}(\mathbf{x})$ contains system-level PPA and the application accuracy measurements.
-
-The training set is expanded as
-\begin{equation}
-    \mathcal{D}_{t+1}
-    =
-    \mathcal{D}_t\cup\mathcal{Y}_t.
-    \label{eq:se_dataset_update}
-\end{equation}
-
-Both surrogate models are reinitialized and trained from scratch on the expanded training set. Let $\theta_t^P$ and $\theta_t^S$ denote the PPA and accuracy model parameters. The training procedure is expressed as
-\begin{equation}
-\begin{aligned}
-    \theta_{t+1}^{P}
-    &=
-    \operatorname{Train}_{P}
-    (\mathcal{D}_{t+1};\operatorname{Init}()),\\
-    \theta_{t+1}^{S}
-    &=
-    \operatorname{Train}_{S}
-    (\mathcal{D}_{t+1};\operatorname{Init}()).
-\end{aligned}
-\label{eq:se_retraining}
-\end{equation}
-
-Here, $\operatorname{Init}()$ denotes a fresh model initialization.
-
-The feedback measurements also expand the latency calibration references:
-\begin{equation}
-    \mathcal{R}_{t+1}
-    =
-    \mathcal{R}_t\cup\mathcal{S}_t.
-    \label{eq:se_reference_update}
-\end{equation}
-
-After retraining, the reference residuals are recomputed using the updated latency surrogate:
-\begin{equation}
-    \rho_{t+1}(\mathbf{r})
-    =
-    L(\mathbf{r})
-    -
-    \widehat L_{t+1}(\mathbf{r}),
-    \qquad
-    \mathbf{r}\in\mathcal{R}_{t+1}.
-    \label{eq:se_residual_update}
-\end{equation}
-
-Thus, the same feedback measurements update both the surrogate models and the local calibration references. Algorithm~\ref{alg:se_feedback} summarizes the procedure.
-
-\begin{figure}[t]
-\centering
-\begin{minipage}{\columnwidth}
-\footnotesize
-\hrule
-\smallskip
-\noindent\textbf{Algorithm: Iterative Feedback}
-\par\smallskip
-\hrule
-\smallskip
-\begin{algorithmic}[1]
-\REQUIRE Design space $\Omega$, dataset $\mathcal{D}_0$,
-rounds $T$, budgets $\{b_t\}$,
-$\tau_{\mathrm{acq}}$, $\beta$, $d_{\max}$
-\ENSURE Updated surrogates and references
-\STATE Train PPA and accuracy models on $\mathcal{D}_0$
-\STATE Initialize measured references $\mathcal{R}_0$
-\FOR{$t=0,\ldots,T-1$}
-    \STATE Compute current reference residuals
-    \STATE $\mathcal{U}_t\gets\operatorname{Search}_{\mathrm{NSGAIII}}(\Omega)$
-    \STATE Exclude evaluated and duplicate designs
-    \STATE Partition $\mathcal{U}_t$ by $\tau_{\mathrm{acq}}$
-    \STATE Select main candidates by Pareto rank and crowding distance
-    \STATE Select boundary candidates nearest to $\tau_{\mathrm{acq}}$
-    \STATE Evaluate selected configurations $\mathcal{S}_t$
-    \STATE $\mathcal{D}_{t+1}\gets\mathcal{D}_t\cup\mathcal{Y}_t$
-    \STATE Reinitialize and retrain both surrogates
-    \STATE $\mathcal{R}_{t+1}\gets\mathcal{R}_t\cup\mathcal{S}_t$
-\ENDFOR
-\STATE Refresh final calibration residuals
-\RETURN Updated surrogates and references
-\end{algorithmic}
-\smallskip
-\hrule
-\end{minipage}
-\caption{Iterative feedback selection and model updates.}
-\label{alg:se_feedback}
-\end{figure}
-
-The updated surrogates and calibration references are used in subsequent search rounds. The models remain fixed during each search, and updates are performed only after the selected configurations have been evaluated.

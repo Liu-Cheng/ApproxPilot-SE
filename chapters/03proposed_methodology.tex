@@ -1,22 +1,27 @@
 
 \section{ApproxPilot-SE Framework}
-\label{sec:method}
+\label{sec:framework}
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=0.98\textwidth]{figures/framework_updated.pdf}
+    \includegraphics[width=1\textwidth]{figures/ApproxPilot_SE_Framework_Semantic.pdf}
     \caption{Overview of ApproxPilot-SE. The framework combines surrogate prediction, local latency calibration, and iterative feedback. Measured results update the surrogate models and calibration references. Final DSE produces a Pareto front and representative designs based on measured PPA and accuracy.}
     \label{fig:framework}
 \end{figure*}
 
 
 
-ApproxPilot-SE is an automated framework for approximate design optimization of domain-specific accelerators, as shown in Fig.~\ref{fig:framework}. Given a target RTL design and an approximate arithmetic-unit library, the framework explores different arithmetic-unit configurations to improve hardware efficiency while maintaining application accuracy. Graph-based surrogate models are used to estimate the PPA and accuracy of candidate designs, while real evaluation results are used to update the models and guide subsequent exploration. 
+Automated approximate accelerator design requires exploring a large number of arithmetic-unit configurations to improve hardware efficiency while maintaining application accuracy. Evaluating these configurations through logic synthesis and application execution is expensive. Existing surrogate-assisted DSE approaches often require substantial training data to achieve reliable predictions, while fixed surrogate models cannot adapt to newly explored regions during search. These limitations make efficient DSE challenging under a limited evaluation dataset.
+
+To address this problem, ApproxPilot-SE introduces a self-evolving DSE framework that couples surrogate learning with design exploration. The framework uses a limited set of initial measurements and progressively incorporates newly evaluated configurations to refine its predictions and guide subsequent search. By reusing measured data for both surrogate updating and local calibration, ApproxPilot-SE aims to improve sample efficiency and achieve competitive designs with fewer ground-truth evaluations. The overall framework is illustrated in Fig.~\ref{fig:framework}.
+
 
 \subsection{Problem Formulation}
 \label{subsec:problem_formulation}
 
-Approximate accelerator design aims to improve hardware efficiency while maintaining application accuracy. Given a target RTL design and an approximate arithmetic-unit library, the optimization task is to select a suitable implementation for each configurable arithmetic site. Different combinations of arithmetic units produce different trade-offs between PPA and accuracy.
+
+Given a target RTL design and an approximate arithmetic-unit library, the optimization task is to select a suitable implementation for each configurable arithmetic site. Different combinations of arithmetic units produce different trade-offs between PPA and application accuracy.
+
 
 Before constructing the design space, we prune the arithmetic-unit library using the strategies adopted in ApproxPilot~\cite{zhang2025approxpilot}. Each unit is characterized by its arithmetic error, area, power, and latency. Dominated units are removed through multiobjective comparison. The remaining units form the candidate library for design optimization.
 
@@ -29,7 +34,7 @@ Let $N$ be the number of configurable arithmetic sites. For site $i$, let $e_i$ 
 \end{equation}
 A candidate design is represented by $\mathbf{x}=(x_1,\ldots,x_N)\in\Omega$, where $x_i$ specifies the implementation selected for site $i$.
 
-Each configuration has its own area $A(\mathbf{x})$, power $P(\mathbf{x})$, latency $L(\mathbf{x})$, and application accuracy $ACC(\mathbf{x})$. Let $A_{\mathrm{ex}}$, $P_{\mathrm{ex}}$, and $L_{\mathrm{ex}}$ denote the PPA metrics of the fully exact design. We formulate the optimization problem as
+Each configuration has its own area $A(\mathbf{x})$, power $P(\mathbf{x})$, latency $L(\mathbf{x})$, and application accuracy $Acc(\mathbf{x})$. Let $A_{\mathrm{ex}}$, $P_{\mathrm{ex}}$, and $L_{\mathrm{ex}}$ denote the PPA metrics of the fully exact design. We formulate the optimization problem as
 \begin{equation}
     \min_{\mathbf{x}\in\Omega}
     \mathbf{f}(\mathbf{x}) =
@@ -42,23 +47,80 @@ Each configuration has its own area $A(\mathbf{x})$, power $P(\mathbf{x})$, late
     \label{eq:se_search_objectives}
 \end{equation}
 
-Here, larger values of $ACC(\mathbf{x})$ indicate higher accuracy. The first three objectives minimize normalized PPA, while the fourth maximizes accuracy. The goal is to find competitive configurations with different PPA and accuracy trade-offs.
+Here, larger values of $Acc(\mathbf{x})$ indicate higher accuracy. The first three objectives minimize normalized PPA, while the fourth maximizes accuracy. The goal is to find competitive configurations with different PPA and accuracy trade-offs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \subsection{Framework Overview}
 \label{subsec:framework_overview}
 
-Fig.~\ref{fig:framework} presents the overall framework of ApproxPilot-SE. It consists of two stages: surrogate co-evolution and final DSE.
+Given the legal design space $\Omega$, an initial limited set of configurations is sampled and evaluated through logic synthesis and application execution. The resulting PPA and accuracy measurements form the initial training dataset $\mathcal{D}_0$, which is used to train the PPA and accuracy surrogate models. These measured configurations also serve as references for local latency calibration.
 
-The framework takes the target RTL and the pruned arithmetic-unit library as inputs. It first constructs a configuration-aware graph from the circuit topology and arithmetic implementation choices. Each arithmetic operation is represented by a node, and edges describe the connections between operations. Different configurations share the circuit topology but have different node features.
+During DSE, NSGA-III generates candidate configurations and evaluates them using the current surrogate models. Each candidate is represented as a configuration-aware graph, from which the PPA and accuracy models predict the corresponding hardware metrics and application accuracy. The predicted latency is further calibrated using nearby measured configurations. These predictions guide candidate ranking and selection without requiring logic synthesis or application execution for every design. The surrogate models and latency calibration are detailed in Section~\ref{sec:surrogate_models}.
 
-Based on the graph representation, ApproxPilot-SE builds separate GNN-based surrogate models for PPA and accuracy prediction. The PPA model predicts area, power, and latency. The accuracy model estimates application accuracy. A path-aware readout is incorporated into the PPA model to support latency prediction. The model structures are presented in Section~\ref{sec:surrogate_modeling}.
+At predefined intervals during exploration, ApproxPilot-SE selects a subset of configurations from the search results for ground-truth evaluation. Rather than relying only on the predicted Pareto front, the framework also considers configurations near the application-accuracy constraint. This selection combines exploitation of promising PPA--accuracy trade-offs with exploration of the accuracy boundary, where prediction errors may affect the identification of feasible designs.
 
-The co-evolution stage starts with an initial set of evaluated configurations. Their measured PPA and accuracy values are used to train the surrogate models. These configurations also provide references for local latency calibration.
+Specifically, let $\mathcal{U}_t$ denote the set of unique, previously unevaluated configurations available for selection at round $t$. The predicted accuracy retention is defined as
+\begin{equation}
+    \widehat r_t(\mathbf{x})
+    =
+    \frac{\widehat{\mathrm{Acc}}_t(\mathbf{x})}
+    {\mathrm{Acc}_{\mathrm{ex}}},
+    \label{eq:se_predicted_retention}
+\end{equation}
+where $\mathrm{Acc}_{\mathrm{ex}}$ denotes the measured accuracy of the fully exact configuration. Given an acquisition threshold $\tau_{\mathrm{acq}}$, the candidates are partitioned into
+\begin{equation}
+\begin{aligned}
+    \mathcal{U}_t^{+}
+    &=
+    \left\{
+    \mathbf{x}\in\mathcal{U}_t
+    \mid \widehat r_t(\mathbf{x})
+    \ge\tau_{\mathrm{acq}}
+    \right\},\\
+    \mathcal{U}_t^{-}
+    &=
+    \left\{
+    \mathbf{x}\in\mathcal{U}_t
+    \mid \widehat r_t(\mathbf{x})
+    <\tau_{\mathrm{acq}}
+    \right\}.
+\end{aligned}
+\label{eq:se_feedback_partition}
+\end{equation}
 
-During DSE, NSGA-III searches the design space using surrogate predictions. The models estimate the objectives of candidate configurations without requiring synthesis for every design. Local latency calibration adjusts the predicted latency using nearby measured configurations. The calibrated latency is combined with the predicted area, power, and accuracy to guide the search.
+Candidates in $\mathcal{U}_t^{+}$ are prioritized by nondominated sorting of the predicted PPA and accuracy objectives, with crowding distance used to preserve diversity within a partially selected front. For $\mathcal{U}_t^{-}$, configurations closer to the predicted accuracy boundary receive higher priority. This allows the framework to evaluate both Pareto-relevant designs and candidates whose feasibility may be affected by prediction errors.
 
-The search results are then used to select Pareto-relevant configurations for logic synthesis and accuracy evaluation. The resulting measurements are added to the training data, and both surrogate models are updated. Meanwhile, the measured configurations are added to the reference set for local latency calibration.
 
-The updated models and references guide the next round of DSE. In this way, search and surrogate learning evolve together. DSE identifies configurations for real evaluation, while the new measurements improve the models used in subsequent search rounds.
 
-After co-evolution, the updated surrogate models and calibration references are used for final DSE. NSGA-III searches the design space and selects promising configurations for logic synthesis and accuracy evaluation. The measured results are used to identify the Pareto front under the required accuracy constraint. Representative designs are then selected to provide different PPA and accuracy trade-offs.
+The selected candidates from $\mathcal{U}_t^{+}$ and $\mathcal{U}_t^{-}$ are sent for logic synthesis and application-level evaluation to obtain measured PPA and accuracy. These new measurements are incorporated into the cumulative training dataset:
+\begin{equation}
+    \mathcal{D}_{t+1}
+    =
+    \mathcal{D}_t\cup\mathcal{Y}_t,
+    \label{eq:se_dataset_update}
+\end{equation}
+where $\mathcal{Y}_t$ contains the newly evaluated configurations and their measured labels. Both surrogate models are reinitialized and retrained on the expanded dataset. Meanwhile, the measured configurations are added to the latency calibration references:
+\begin{equation}
+    \mathcal{R}_{t+1}
+    =
+    \mathcal{R}_t\cup\mathcal{S}_t.
+    \label{eq:se_reference_update}
+\end{equation}
+The reference residuals are then recomputed using the updated latency surrogate. The updated surrogate models and calibration references guide the subsequent search round. 
+
+
+When the predefined budget for model updates is reached, the framework continues DSE using the final surrogate models and calibration references without further updates. Promising configurations are selected for final logic synthesis and application-level evaluation. The measured results are used to identify feasible Pareto designs according to the user-defined constraints, providing different trade-offs between hardware efficiency and application accuracy.
