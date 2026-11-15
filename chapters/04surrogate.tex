@@ -1,8 +1,11 @@
 
-\section{Surrogate Models}
+\section{Surrogate Models and Latency Calibration}
 \label{sec:surrogate_models}
 
-To efficiently evaluate accelerator configurations during DSE, ApproxPilot-SE employs two graph-based surrogate models. Given an accelerator configuration, the PPA model predicts its area, power, and latency, while the accuracy model estimates its application-level accuracy. These models provide fast estimates of the system-level behavior of candidate configurations without requiring logic synthesis and application-level execution for every design.
+ApproxPilot-SE uses two graph-based surrogates during DSE. The PPA surrogate learns how the selected arithmetic units and their circuit dependencies affect area, power, and latency. The accuracy surrogate learns how local arithmetic errors affect application outputs. We describe the graph inputs, the architecture and training of each model, and the use of measured references to calibrate latency at prediction time.
+
+\subsection{Configuration-Aware Graph Representation}
+\label{subsec:surrogate_graph_representation}
 
 Following ApproxPilot~\cite{zhang2025approxpilot}, the target accelerator is represented as a graph in which arithmetic operations are nodes and their dependencies are edges. Different configurations share the accelerator topology, while their node features change according to the selected arithmetic units. For a configuration $\mathbf{x}$, the two graph inputs are
 \begin{equation}
@@ -43,30 +46,60 @@ The two surrogate models use different graph structures and features to capture 
 \end{tabular}
 \end{table}
 
-
-
-
-
-
-\subsection{Area and power}
+\subsection{PPA Surrogate}
 \label{subsec:Area and power}
 
-The PPA surrogate uses a GNN to learn circuit representations from the graph structure and node features described above. The graph encoder propagates information along directed dependencies to capture interactions between arithmetic operations.
+The PPA surrogate uses a shared four-layer GNN encoder with a hidden dimension of 128. Its message-passing layers propagate information along the directed edges of $G_P$ so that the representation of each operation reflects both the selected arithmetic unit and its circuit context. The encoder feeds objective-specific readouts: area and power use separate graph-level aggregations, while latency uses a readout that preserves the order of operations along directed paths.
 
+\noindent\textit{1) Area and Power Readouts:}
 Area and power are predicted using separate graph-level readouts. Each readout aggregates the encoded node representations for its corresponding objective. The resulting representation is combined with configuration-level features and passed to an independent regression head to predict system-level area or power.
 
+\noindent\textit{2) Path-Aware Latency Readout:}
+Unlike area and power, latency depends on the paths formed by connected arithmetic operations. The latency readout therefore aggregates the node representations produced by the PPA encoder along these paths. Inspired by max-plus propagation in timing analysis, the readout accumulates hidden representations along arithmetic dependencies in topological order:
+\begin{equation}
+\mathbf{s}_v=
+\begin{cases}
+\mathbf{h}_v, & \operatorname{Pred}(v)=\varnothing,\\
+\mathbf{h}_v+\displaystyle\max_{u\in\operatorname{Pred}(v)}
+\mathbf{s}_u, & \text{otherwise},
+\end{cases}
+\label{eq:se_path_aggregation}
+\end{equation}
+where $\mathbf{h}_v$ is the representation of node $v$, and $\operatorname{Pred}(v)$ denotes its predecessor nodes in the PPA graph $G_P$. The maximum is applied element-wise. The graph-level path representation is obtained as
+\begin{equation}
+    \mathbf{z}_L=\max_{v\in V}\mathbf{s}_v,
+\end{equation}
+and used for latency prediction without requiring explicit critical-path labels.
 
+\subsection{Application Accuracy Surrogate}
+\label{subsec:accuracy}
 
+Application-level accuracy depends on how approximation errors propagate through the accelerator. To capture this relationship, we use a separate five-layer GraphSAGE encoder with a hidden dimension of 128. GraphSAGE aggregates neighboring node features on $G_S$; stacking these layers allows an operation's representation to incorporate approximation-related information from multiple hops in the application graph. This branch uses the arithmetic-error features introduced above to learn how the selected units affect the application output.
 
+For a given configuration $\mathbf{x}$, the model predicts SSIM for each evaluation image. The configuration-level accuracy is obtained by averaging these predictions:
+\begin{equation}
+    \widehat{\mathrm{Acc}}(\mathbf{x})
+    =
+    \frac{1}{M}
+    \sum_{j=1}^{M}
+    \widehat{\mathrm{SSIM}}_j(\mathbf{x}),
+    \label{eq:se_accuracy_prediction}
+\end{equation}
+where $M$ is the number of evaluation images and $\widehat{\mathrm{SSIM}}_j(\mathbf{x})$ denotes the predicted SSIM for image $j$. The resulting accuracy estimate is used together with the PPA predictions during DSE.
 
+\subsection{Surrogate Training and Updates}
+\label{subsec:surrogate_training}
 
-\subsection{Latency}
-\label{subsec:latency}
-Unlike area and power, latency depends strongly on the paths formed by connected arithmetic operations. To improve latency prediction, ApproxPilot-SE combines a path-aware readout with local calibration using previously measured configurations.
+The two models are trained separately on the initial measured configurations in $\mathcal{D}_0$. Each configuration provides a graph input for each branch and its corresponding regression targets. For the PPA model, the targets are area, power, and latency obtained from logic synthesis. The latency target is the measured latency of the complete accelerator, so training the path-aware readout does not require labels for individual critical-path nodes. For the accuracy model, application execution provides an SSIM target for each evaluation image; the predicted scores are averaged to obtain the configuration-level accuracy used by DSE.
 
+During the self-evolving search, the configurations selected for evaluation in Section~\ref{subsec:framework_overview} provide new labeled examples. At each scheduled update, both models are reinitialized and trained on the cumulative dataset $\mathcal{D}_{t+1}$, which retains the earlier measurements as well as the new ones. The updated models are used to score candidates in the next search round. Latency calibration uses residuals computed with the current model at prediction time; the measured latency remains the training target.
 
-\noindent\textit{1) Local Calibration:}
-ApproxPilot-SE further calibrates the predicted latency using previously measured configurations.
+\subsection{Local Latency Calibration}
+\label{subsec:local_latency_calibration}
+
+The path-aware readout provides the direct latency estimate. When labeled data are limited, nearby configurations can exhibit a shared prediction bias. ApproxPilot-SE uses the residual of the nearest measured configuration to correct the candidate estimate when the reference is sufficiently close.
+
+\noindent\textit{1) Reference Retrieval and Residual Correction:}
 
 At feedback round $t$, let $\mathcal{R}_t$ denote the set of configurations with measured latency in the cumulative training set. For each reference $\mathbf{r}\in\mathcal{R}_t$, its prediction residual is
 \begin{equation}
@@ -114,7 +147,7 @@ Let $d_{\max}$ denote the maximum calibration distance. The calibrated latency e
     \label{eq:se_latency_calibration}
 \end{equation}
 
- If no reference lies within the calibration neighborhood, the direct surrogate prediction is used.
+For the exact design, the measured latency is used. For other configurations, the direct surrogate prediction is retained if no reference lies within the calibration neighborhood.
 
 For a candidate with an applicable reference, Eq.~\ref{eq:se_latency_calibration} becomes
 \begin{equation}
@@ -130,6 +163,7 @@ For a candidate with an applicable reference, Eq.~\ref{eq:se_latency_calibration
 
 The first term provides a measured latency anchor. The remaining terms estimate the latency difference between the candidate and the reference.
 
+\noindent\textit{2) Effect on Prediction Error:}
 To examine the calibration effect, define the original prediction error as
 \begin{equation}
     e_t(\mathbf{x})
@@ -170,55 +204,3 @@ The calibrated error then becomes
 \end{equation}
 
 The shared bias is canceled, leaving the difference between the local error components. This provides the basis for using nearby measured configurations to correct latency estimates.
-
-
-
-
-
-\noindent\textit{2) Path-Aware Readout:}
-To capture arithmetic dependencies in latency prediction, we apply a path-aware readout to the node representations produced by the PPA encoder. Inspired by max-plus propagation in timing analysis, the readout accumulates hidden representations along arithmetic dependencies in topological order:
-\begin{equation}
-\mathbf{s}_v=
-\begin{cases}
-\mathbf{h}_v, & \operatorname{Pred}(v)=\varnothing,\\
-\mathbf{h}_v+\displaystyle\max_{u\in\operatorname{Pred}(v)}
-\mathbf{s}_u, & \text{otherwise},
-\end{cases}
-\label{eq:se_path_aggregation}
-\end{equation}
-where $\mathbf{h}_v$ is the representation of node $v$, and $\operatorname{Pred}(v)$ denotes its predecessor nodes in the PPA graph $G_P$. The maximum is applied element-wise. The graph-level path representation is obtained as
-\begin{equation}
-    \mathbf{z}_L=\max_{v\in V}\mathbf{s}_v,
-\end{equation}
-and used for latency prediction without requiring explicit critical-path labels.
-
-
-
-
-
-
-
-
-\subsection{Accuracy}
-\label{subsec:accuracy}
-
-Application-level accuracy is determined by how local approximation errors propagate through the accelerator and affect its outputs. ApproxPilot-SE employs a separate GraphSAGE model to capture this relationship using the application graph and approximation-related features described above. The model learns how arithmetic-unit assignments and their error characteristics affect the overall application accuracy.
-
-For a given configuration $\mathbf{x}$, the model predicts SSIM for each evaluation image. The configuration-level accuracy is obtained by averaging these predictions:
-\begin{equation}
-    \widehat{\mathrm{Acc}}(\mathbf{x})
-    =
-    \frac{1}{M}
-    \sum_{j=1}^{M}
-    \widehat{\mathrm{SSIM}}_j(\mathbf{x}),
-    \label{eq:se_accuracy_prediction}
-\end{equation}
-where $M$ is the number of evaluation images and $\widehat{\mathrm{SSIM}}_j(\mathbf{x})$ denotes the predicted SSIM for image $j$. The resulting accuracy estimate is used together with the PPA predictions during DSE.
-
-
-
-
-
-
-
-

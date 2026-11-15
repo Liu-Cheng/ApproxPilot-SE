@@ -2,7 +2,7 @@
 \section{Experimental Results}
 \label{sec:experiments}
 
-In this section, we evaluate ApproxPilot-SE for approximate accelerator design and compare it with ApproxPilot and ApproxGNN~\cite{zhang2025approxpilot,vlcek2025approxgnn}. We first examine the optimization results across different accelerators, including larger designs with substantially more configurable arithmetic sites. We then evaluate end-to-end data efficiency and investigate the effectiveness of iterative feedback, feedback selection, and latency modeling.
+We compare ApproxPilot-SE with ApproxPilot and ApproxGNN~\cite{zhang2025approxpilot,vlcek2025approxgnn} across five accelerators. We first assess verified optimization results at a fixed training budget, then examine end-to-end data and runtime efficiency across training budgets. Finally, we isolate the contributions of the optimization mechanisms, assess latency prediction accuracy, and study parameter sensitivity.
 
 
 
@@ -158,7 +158,7 @@ ApproxPilot-SE employs separate GNN models for PPA and application accuracy pred
 
 
 
-ApproxPilot and ApproxGNN serve as the baseline methods, retaining their respective prediction models and search strategies. To evaluate data efficiency, we consider training data sizes of 512, 1024, 2048, 4096, and 8192 labeled configurations. After optimization, each method selects 100 final candidates for independent ground-truth PPA and application-quality evaluation.
+ApproxPilot and ApproxGNN serve as the baselines, retaining their respective prediction models and search strategies. After optimization, each method selects 100 final candidates for independent ground-truth PPA and application-quality evaluation.
 
 
 
@@ -197,18 +197,27 @@ where $\mathbf{f}_{\mathrm{ex}}=(1,1,1)$ and $\mathcal{P}_{\tau}$ contains the m
 \subsection{Overall Approximation Optimization}
 \label{sec:optimization_results}
 
-We first compare ApproxPilot-SE with ApproxPilot and ApproxGNN across five accelerators under SSIM-retention requirements ranging from 80\% to 99\%. As shown in Table~\ref{tab:hv_gain}, ApproxPilot-SE achieves the highest or equally highest verified relative PPA HV in 24 of the 25 evaluated cases, demonstrating its effectiveness across different accelerator structures and quality constraints.
+\subsubsection{Comparison Protocol}
+Table~\ref{tab:hv_gain} compares the three methods on the five benchmarks in Section~\ref{sec:setup} at a matched budget of 720 labeled target configurations per method and benchmark. ApproxPilot-SE divides this budget between $n_0$ initial configurations and batches of $b_t$ newly measured configurations acquired over $R$ feedback rounds, so that $n_0+\sum_{t=1}^{R} b_t=720$. The new labels update both the surrogates and the calibration references. For the baselines, the comparison counts target configurations used for training or adaptation; any source-domain pretraining is accounted for separately. The final 100 candidates per method are evaluated independently and are not counted as training labels. Verified relative HV is evaluated at 80\%, 85\%, 90\%, 95\%, and 99\% SSIM retention using the exact design as the reference.
 
-The advantages are particularly evident on the larger DCT and Laplace benchmarks. At 90\% SSIM retention, ApproxPilot-SE achieves 3.15$\times$ and 2.29$\times$ the relative HV of the strongest baseline on DCT and Laplace, respectively. 
+\noindent\textit{Protocol details to complete:} the initial and per-round sample counts, update triggers, and boundary-sampling quota for ApproxPilot-SE; the sampling and adaptation splits for each baseline; and the search budgets, validation splits, and seeds or number of repeated runs for all methods.
 
-As the SSIM-retention requirement becomes more stringent, the feasible design space becomes increasingly restricted, making it more challenging to obtain favorable hardware tradeoffs. Nevertheless, ApproxPilot-SE maintains a substantial advantage in the high-accuracy region. On DCT, its relative HV advantage over the strongest baseline increases from 2.54$\times$ at 80\% retention to 3.59$\times$ at 95\% retention. Even at 99\% retention, ApproxPilot-SE maintains a clear advantage and achieves the highest relative HV on all five benchmarks. These results highlight its ability to identify hardware-efficient configurations while preserving high application accuracy.
+\subsubsection{Verified PPA Trade-offs}
+\noindent\textit{Comparison with exact designs:}
+At 80\% SSIM retention, all three methods improve on the exact-only reference on all five benchmarks. ApproxPilot-SE attains relative HV between 15.50$\times$ on DCT and 238.74$\times$ on KMeans. As the required retention increases, fewer measured designs remain feasible and the achievable HV falls. This effect is especially strong for KMeans, whose relative HV for ApproxPilot-SE falls from 238.74$\times$ at 80\% retention to 1.59$\times$ at 99\%. At 99\%, however, ApproxPilot-SE still exceeds the exact-only reference on all five benchmarks. It retains the largest relative HV on Laplace (10.72$\times$) and DCT (10.25$\times$), followed by Gaussian (7.46$\times$), Sobel (4.06$\times$), and KMeans (1.59$\times$). A value of 1.00$\times$ indicates that the verified candidates add no PPA hypervolume beyond the exact design.
+
+\noindent\textit{Comparison with prior methods:}
+Across the 25 benchmark--threshold pairs, the geometric mean of the relative-HV ratios is 3.83$\times$ against ApproxPilot and 2.88$\times$ against ApproxGNN. The maximum ratios are 48.51$\times$ against ApproxPilot on Laplace at 85\% retention, where that baseline adds no HV beyond the exact design, and 12.69$\times$ against ApproxGNN on KMeans at 90\% retention. Taking the stronger baseline separately for each pair gives a geometric mean of 2.27$\times$ and a maximum of 12.69$\times$ (KMeans at 90\%: 37.18$\times$ versus 2.93$\times$). ApproxPilot-SE leads outright in 23 of 25 pairs, ties ApproxGNN on Sobel at 80\%, and trails ApproxPilot only on Laplace at 80\%. It leads on all five benchmarks at each threshold from 85\% through 99\%. The gains vary by workload: on Sobel they are generally smaller, whereas KMeans shows a large advantage at intermediate thresholds and DCT and Gaussian show their largest advantages at 99\%. The large KMeans ratio at 90\% reflects both the PPA trade-offs found by ApproxPilot-SE and the small HV achieved by both baselines at that threshold.
+
+\noindent\textit{DCT under tighter accuracy constraints:}
+On DCT at 90\% retention, ApproxPilot-SE reaches 13.66$\times$ the exact-design HV, compared with 4.34$\times$ for ApproxPilot and 3.95$\times$ for ApproxGNN. This is 3.15$\times$ the stronger baseline. At 99\% retention, ApproxPilot-SE still reaches 10.25$\times$ the exact-design HV and 8.99$\times$ the stronger baseline. The latter ratio partly reflects that both baselines are close to the exact-only reference. The DCT ablations in Section~\ref{sec:optimization_analysis} show that removing iterative feedback, guided selection, or local latency calibration reduces final HV at 90\% retention. These results support the contribution of those mechanisms on DCT; the comparison alone does not isolate their effects at 99\%.
 
 
 
 
 
-\noindent\textbf{Pareto Frontiers:}
-Fig.~\ref{fig:measured_pareto} compares the Area--SSIM, Power--SSIM, and Latency--SSIM Pareto fronts obtained by ApproxPilot-SE, ApproxPilot, and ApproxGNN on DCT.
+\subsubsection{DCT Pareto Frontiers}
+To show the trade-offs behind the aggregate HV results, Fig.~\ref{fig:measured_pareto} plots the measured DCT candidates and their two-dimensional Pareto fronts for area, power, and latency versus SSIM retention. Each hardware metric is normalized to the exact design, so values below 1 indicate a reduction.
 
 \begin{figure*}[t]
 \centering
@@ -218,7 +227,7 @@ Fig.~\ref{fig:measured_pareto} compares the Area--SSIM, Power--SSIM, and Latency
 \end{figure*}
 
 
-As shown in Fig.~\ref{fig:measured_pareto}, ApproxPilot-SE achieves more favorable Pareto fronts across all three hardware metrics. Compared with the baseline methods, its solutions extend toward lower area, power, and latency over a broad range of SSIM levels. This improvement indicates that ApproxPilot-SE can identify a wider range of competitive hardware configurations rather than obtaining gains at only a few operating points. The advantage is particularly evident in the high-SSIM region, where ApproxPilot-SE continues to identify favorable PPA--quality tradeoffs while preserving application accuracy. These observations show that ApproxPilot-SE improves both the overall quality of the explored design set and the available hardware tradeoffs under stringent accuracy requirements.
+The area and power projections show that ApproxPilot-SE can retain hardware savings over a range of quality levels, including near the exact design's SSIM. The latency projection likewise includes several ApproxPilot-SE candidates below the exact-design latency at high retention, where many baseline candidates remain at or above that reference. The scatter also shows that not every candidate improves every objective. These projections illustrate individual trade-offs within the final measured sets; Table~\ref{tab:hv_gain} evaluates area, power, and latency jointly under each SSIM constraint.
 
 
 
@@ -232,7 +241,10 @@ As shown in Fig.~\ref{fig:measured_pareto}, ApproxPilot-SE achieves more favorab
 
 
 
-\noindent\textbf{End-to-End Data Efficiency:}
+\subsection{End-to-End Data and Runtime Efficiency}
+\label{sec:data_runtime_efficiency}
+
+\subsubsection{End-to-End Data Efficiency}
 The effectiveness of surrogate-assisted DSE depends not only on optimization quality but also on the amount of ground-truth data required to obtain competitive designs. To evaluate data efficiency, we compare ApproxPilot-SE, ApproxPilot, and ApproxGNN on DCT with training data sizes of 512, 1024, 2048, 4096, and 8192 labeled configurations. Fig.~\ref{fig:end_to_end_sample_efficiency} reports the relative HV under a 90\% SSIM-retention constraint, computed from ground-truth-verified final designs.
 
 \begin{figure}[t]
@@ -244,7 +256,7 @@ The effectiveness of surrogate-assisted DSE depends not only on optimization qua
 
 As shown in Fig.~\ref{fig:end_to_end_sample_efficiency}, ApproxPilot-SE reaches a high level of optimization quality with a small training dataset. Its relative HV increases from 11.82$\times$ at 512 configurations to 14.36$\times$ at 1024 configurations and remains at a comparably high level as the training data size increases, reaching 15.77$\times$ at 8192 configurations. In contrast, ApproxPilot and ApproxGNN show overall improvements with larger training datasets, but neither reaches the optimization level achieved by ApproxPilot-SE across the evaluated training data sizes.
 
-Comparing different training data sizes further highlights this difference in data efficiency. With only 512 training configurations, ApproxPilot-SE achieves a relative HV of 11.82$\times$, exceeding the 7.05$\times$ and 5.01$\times$ obtained by ApproxPilot and ApproxGNN with 8192 configurations, respectively. Thus, ApproxPilot-SE achieves higher verified optimization quality using 16 times fewer training labels. These results indicate that coupling surrogate updates with design exploration enables the framework to reach competitive PPA tradeoffs with substantially fewer ground-truth measurements.
+Comparing different training data sizes further highlights this difference in data efficiency. With 512 training configurations, ApproxPilot-SE achieves a relative HV of 11.82$\times$, exceeding the 7.05$\times$ and 5.01$\times$ obtained by ApproxPilot and ApproxGNN with 8192 configurations, respectively. Thus, ApproxPilot-SE achieves higher verified optimization quality using one-sixteenth as many training labels in this DCT comparison.
 
 
 
@@ -252,8 +264,26 @@ Comparing different training data sizes further highlights this difference in da
 
 
 
-\noindent\textbf{End-to-End Runtime Analysis:}
-We compare the end-to-end runtime of the three frameworks using 512 and 4096 training configurations. Fig.~\ref{fig:runtime_breakdown} shows the time spent on data acquisition, initial training, search and updates, and other overhead.
+\subsubsection{End-to-End Runtime Analysis}
+The runtime comparison follows the same DCT training budgets as the data-efficiency study: 512, 1024, 2048, 4096, and 8192 labeled configurations. Table~\ref{tab:runtime_by_budget} aligns the runtime results with this budget grid. Fig.~\ref{fig:runtime_breakdown} shows the breakdown of data acquisition, initial training, search and updates, and other overhead for the two budgets with available measurements. The remaining budgets require timing on the same platform with matching parallelism and consistent accounting for pretraining, feedback evaluations, and the final verification pass.
+
+\begin{table}[t]
+\centering
+\caption{End-to-end DCT runtime (h) at the training budgets used in the data-efficiency study. A dash indicates a timing result to be collected.}
+\label{tab:runtime_by_budget}
+\footnotesize
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lccc@{}}
+\toprule
+Training labels & ApproxPilot & ApproxGNN & ApproxPilot-SE \\
+\midrule
+512  & 3.74 & 7.03 & 3.66 \\
+1024 & --   & --   & --   \\
+2048 & --   & --   & --   \\
+4096 & 24.12 & 35.24 & 24.00 \\
+8192 & --   & --   & --   \\
+\bottomrule
+\end{tabular*}
+\end{table}
 
 \begin{figure}[t]
     \centering
@@ -262,7 +292,7 @@ We compare the end-to-end runtime of the three frameworks using 512 and 4096 tra
     \label{fig:runtime_breakdown}
 \end{figure}
 
-As shown in Fig.~\ref{fig:runtime_breakdown}, data acquisition dominates the total runtime, accounting for approximately 86\%--93\% across the three frameworks. At 512 configurations, ApproxPilot-SE, ApproxPilot, and ApproxGNN require 3.66, 3.74, and 7.03 h, respectively. At 4096 configurations, their runtimes are 24.00, 24.12, and 35.24 h. ApproxPilot-SE maintains a runtime comparable to ApproxPilot and substantially lower than ApproxGNN. Combined with the data-efficiency results, this demonstrates that ApproxPilot-SE achieves higher optimization quality without introducing substantial additional runtime overhead.
+At the two measured budgets, data acquisition accounts for approximately 86\%--93\% of end-to-end runtime across the methods. ApproxPilot-SE has a runtime comparable to ApproxPilot and lower than ApproxGNN at both measured budgets. Paired with the data-efficiency results at these two points, the timings show higher verified HV for roughly the same runtime as ApproxPilot; scaling across the full budget range remains to be measured.
 
 
 
@@ -279,15 +309,10 @@ As shown in Fig.~\ref{fig:runtime_breakdown}, data acquisition dominates the tot
 \subsection{Optimization Analysis}
 \label{sec:optimization_analysis}
 
-The effectiveness of ApproxPilot-SE depends on both surrogate prediction accuracy and how ground-truth measurements are utilized during exploration. To investigate the contributions of its key mechanisms, we conduct comparative experiments across five benchmarks, as summarized in Table~\ref{tab:optimization_analysis}.
+\subsubsection{End-to-End Ablation}
+Table~\ref{tab:optimization_analysis} compares the full framework at 90\% SSIM retention with three variants: one-shot surrogate training, random feedback selection, and search without local latency calibration. Relative HV measures each mechanism's contribution to the final verified design set. The training and final evaluation budgets for these runs, and how the one-shot training set was constructed, are to be specified.
 
-\noindent\textbf{Iterative Feedback and Pareto-guided Selection:}
-Limited initial training data may not adequately cover the high-dimensional design space, restricting the effectiveness of fixed surrogate models. ApproxPilot-SE addresses this limitation by incorporating newly measured configurations into surrogate training, allowing subsequent exploration to benefit from accumulated design information. Compared with one-shot training, iterative feedback increases the relative HV on KMeans from 23.37$\times$ to 39.63$\times$, demonstrating the benefit of continuously refining the surrogates during exploration.
-
-The effectiveness of this feedback process also depends on how the limited ground-truth evaluation data is allocated. ApproxPilot-SE prioritizes Pareto-relevant candidates and configurations near the accuracy constraint boundary, directing new measurements toward regions relevant to optimization. Compared with random selection, this strategy increases the relative HV on Sobel from 11.45$\times$ to 16.06$\times$ and achieves higher optimization quality on DCT and KMeans. Together, iterative feedback and Pareto-guided selection enable the search and surrogate models to improve through successive rounds of exploration and measurement.
-
-\noindent\textbf{Latency Modeling:}
-Beyond the effective use of measured data, accurate hardware-cost estimation is essential for guiding design space exploration. Latency depends on computational dependencies and changes in critical paths, making its prediction sensitive to circuit configurations. ApproxPilot-SE employs local latency calibration to correct surrogate estimates using prediction residuals from nearby measured configurations. Without this mechanism, the relative HV decreases from 13.66$\times$ to 11.48$\times$ on DCT and from 33.49$\times$ to 30.12$\times$ on Gaussian. The complete framework achieves higher relative HV on four of the five benchmarks, indicating that local calibration improves candidate evaluation and supports more effective system-level optimization.
+Compared with one-shot training, iterative feedback improves relative HV on three of five benchmarks, with the largest absolute increase on KMeans (23.37$\times$ to 39.63$\times$). Guided selection outperforms random selection on DCT, Sobel, and KMeans; on Sobel it raises relative HV from 11.45$\times$ to 16.06$\times$. Local calibration improves final relative HV on four of five benchmarks, including DCT (11.48$\times$ to 13.66$\times$) and Gaussian (30.12$\times$ to 33.49$\times$). Some variants perform better on individual benchmarks, so the benefit of each mechanism depends on the workload. These results assess design selection quality; they do not directly measure latency prediction error.
 
 
 
@@ -334,5 +359,61 @@ Bold indicates the higher value in each comparison.
 \end{table}
 
 
-\noindent\textbf{Parameter Sensitivity:}
-We further examine the effects of the accuracy-boundary sampling ratio and feedback schedule on DCT. Varying the boundary sampling ratio from 0\% to 40\% yields relative HV values of 13.81$\times$--14.20$\times$. The feedback schedules of $45$, $90$, and $180$ achieve 13.11$\times$, 13.81$\times$, and 13.47$\times$, respectively. These results indicate that ApproxPilot-SE maintains competitive optimization quality across different parameter settings.
+\subsubsection{Latency Prediction Accuracy}
+To measure the effects of the readout and calibration directly, we separate latency prediction from end-to-end DSE. Table~\ref{tab:latency_prediction_ablation} lays out a two-by-two comparison: conventional graph-level pooling versus the path-aware readout, each with and without local calibration. The encoder, training data, and test configurations should be held fixed across readout variants. Calibration references should come only from the training configurations, and all four variants should be scored on the same held-out configurations. Report MAE and RMSE in physical units and Spearman rank correlation to assess both absolute prediction error and the ordering of candidates used by DSE.
+
+\begin{table}[t]
+\centering
+\caption{Latency prediction ablation on held-out configurations. A dash indicates a result to be collected.}
+\label{tab:latency_prediction_ablation}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+Readout & Calibration & MAE (ns) & RMSE (ns) & Spearman $\rho$ \\
+\midrule
+Graph-level pooling & Off & -- & -- & -- \\
+Graph-level pooling & On  & -- & -- & -- \\
+Path-aware          & Off & -- & -- & -- \\
+Path-aware          & On  & -- & -- & -- \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsubsection{Parameter Sensitivity}
+We examine two choices that control feedback on DCT: the fraction of evaluations allocated to the predicted accuracy boundary and the schedule for retraining the surrogates. Fig.~\ref{fig:feedback_sensitivity} shows the available schedule results and reserves a panel for the boundary-sampling curve. Varying the boundary-sampling ratio from 0\% to 40\% yielded relative HV from 13.81$\times$ to 14.20$\times$; per-setting values are needed to plot the curve. Among the measured feedback schedule settings, 90 gives the highest relative HV (13.81$\times$), compared with 13.11$\times$ at 45 and 13.47$\times$ at 180. The final comparison should specify the schedule units and document the fixed budgets and other settings for both sweeps.
+
+\begin{figure}[t]
+\centering
+\setlength{\unitlength}{0.8pt}
+\begin{picture}(274,112)
+    \put(137,109){\makebox(0,0){\scriptsize Relative PPA HV ($\times$ Exact)}}
+    \put(10,91){\makebox(122,0){\scriptsize (a) Boundary sampling}}
+    \put(149,91){\makebox(122,0){\scriptsize (b) Feedback schedule}}
+    \put(15,29){\line(1,0){112}}
+    \put(15,29){\line(0,1){53}}
+    \put(157,29){\line(1,0){110}}
+    \put(157,29){\line(0,1){53}}
+    \put(15,19){\makebox(0,0){\scriptsize 0}}
+    \put(127,19){\makebox(0,0){\scriptsize 40}}
+    \put(71,55){\makebox(0,0){\scriptsize Per-setting values pending}}
+    \put(71,4){\makebox(0,0){\scriptsize Boundary sampling ratio (\%)}}
+    \put(171,19){\makebox(0,0){\scriptsize 45}}
+    \put(200,19){\makebox(0,0){\scriptsize 90}}
+    \put(258,19){\makebox(0,0){\scriptsize 180}}
+    \put(213,4){\makebox(0,0){\scriptsize Feedback schedule setting}}
+    \begingroup
+    \color{blue!65!black}
+    \qbezier(171,37)(185.5,54.5)(200,72)
+    \qbezier(200,72)(229,63.5)(258,55)
+    \put(171,37){\circle*{3}}
+    \put(200,72){\circle*{3}}
+    \put(258,55){\circle*{3}}
+    \endgroup
+    \put(172,46){\makebox(0,0){\scriptsize 13.11}}
+    \put(200,80){\makebox(0,0){\scriptsize 13.81}}
+    \put(253,64){\makebox(0,0){\scriptsize 13.47}}
+\end{picture}
+\caption{Sensitivity of verified optimization quality on DCT. Only measured schedule settings are plotted; panel (a) is reserved for the boundary-sampling sweep.}
+\label{fig:feedback_sensitivity}
+\end{figure}
