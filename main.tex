@@ -1,4 +1,5 @@
-\documentclass[journal]{IEEEtran}
+% IEEE TCAD uses the standard IEEE Transactions journal format.
+\documentclass[10pt,journal,letterpaper]{IEEEtran}
 
 \usepackage[OT1]{fontenc}
 \usepackage{cite}
@@ -14,14 +15,10 @@
 
 \graphicspath{{figures/}}
 \newcounter{algorithm}
-\usepackage{algorithmic}
 
 
 \usepackage{xcolor}
 \usepackage{pifont}
-\usepackage{pgfplots}
-\usepgfplotslibrary{groupplots}
-\pgfplotsset{compat=1.18}
 \usepackage{pgfplots}
 \usepgfplotslibrary{groupplots}
 \pgfplotsset{compat=1.18}
@@ -36,10 +33,7 @@
 \newcommand{\cmark}{\textcolor{green!50!black}{\ding{51}}}
 \newcommand{\xmark}{\textcolor{red!80!black}{\ding{55}}}
 
-% Use IEEEtran's column geometry and standard float spacing.
-\setcounter{dbltopnumber}{2}
-\renewcommand{\dbltopfraction}{0.85}
-\renewcommand{\textfraction}{0.10}
+% Retain IEEEtran's default column geometry and float spacing.
 
 \hyphenation{ap-prox-i-mate ac-cel-er-a-tor sur-ro-gate mul-ti-ob-jec-tive non-dom-i-nat-ed}
 
@@ -59,6 +53,8 @@
 }
 
 \begin{document}
+\markboth{IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems}%
+{Wang \MakeLowercase{\textit{et al.}}: ApproxPilot-SE}
 \maketitle
 
 
@@ -86,14 +82,7 @@ approximate accelerators, graph neural networks, surrogate modeling, design spac
 \input{chapters/02background_related_work}
 \input{chapters/03proposed_methodology}
 \input{chapters/04surrogate}
-% Keep the experiment floats compact with positive, local IEEE-style spacing.
-\begingroup
-\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
-\setlength{\dbltextfloatsep}{14pt plus 2pt minus 2pt}
-\setlength{\floatsep}{10pt plus 2pt minus 2pt}
-\setlength{\dblfloatsep}{10pt plus 2pt minus 2pt}
 \input{chapters/05Experiments}
-\endgroup
 \input{chapters/06conclusion}
 \FloatBarrier
 
