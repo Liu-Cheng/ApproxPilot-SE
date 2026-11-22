@@ -1,16 +1,26 @@
+
 \section{Related Work}
 \label{sec:related}
-
 
 \subsection{Automated Optimization of Approximate Accelerators}
 
 Automated approximate-accelerator design determines how approximation should be introduced while balancing hardware efficiency and application quality.
 Component libraries, including EvoApprox8b~\cite{mrazek2017evoapprox} and SMApproxLib~\cite{ullah2018smapproxlib}, provide arithmetic implementations with different error and hardware characteristics.
+Approximate adder designs, such as QuAd~\cite{hanif2017quad}, further investigate tradeoffs among accuracy, area, and delay.
 At the accelerator level, the optimization must decide where approximation is acceptable and how the selected implementations interact within the complete computation.
-ABACUS~\cite{nepal2014abacus} explores behavioral approximation transformations, whereas library-based methods search over assignments of approximate arithmetic components.
+ABACUS~\cite{nepal2014abacus} explores behavioral approximation transformations, whereas Circuit Carving~\cite{scarabottolo2018carving} derives inexact circuits by selectively removing portions of exact implementations.
+Approximate logic synthesis provides a broader set of circuit-level transformation techniques~\cite{scarabottolo2020als}.
+Library-based methods instead search over assignments of approximate arithmetic components.
 AutoAx~\cite{mrazek2019autoax} combines learned cost and quality predictors with automated configuration search.
+ENAP~\cite{dou2023enap} reduces the approximate-configuration search space through number-aware pruning, while FPAX~\cite{duo2024fpax} exploits prior knowledge to accelerate DSE.
 AxHLS~\cite{castrogodinez2020axhls} integrates approximate functional units into high-level synthesis (HLS), using analytical models to estimate resources and accuracy.
 ApproxFPGAs~\cite{prabakaran2020approxfpgas} investigates the use of ASIC-oriented approximate components in FPGA systems, while Xel-FPGAs~\cite{prabakaran2023xelfpgas} adopts a multistage flow from arithmetic components to approximate functional modules and accelerator optimization.
+
+Other approaches improve the efficiency of approximation under hardware and error constraints.
+HEDALS~\cite{meng2023hedals} addresses delay-driven approximate logic synthesis, while AccALS 2.0~\cite{wang2025accals2} accelerates approximation through the simultaneous selection of multiple local changes.
+Simulation-guided synthesis has also been investigated under maximum-error constraints~\cite{meng2026simulation}.
+For neural-network accelerators, approximate multipliers and formal-property-based exploration support hardware--accuracy tradeoffs~\cite{ansari2020approxmult,spantidi2022energy}.
+Recent work further extends accuracy-constrained co-optimization to approximate digital computing-in-memory architectures~\cite{zhou2026openacmv2}.
 
 Learning-based frameworks further exploit circuit structure.
 ApproxPilot~\cite{zhang2025approxpilot} uses accelerator graphs to predict PPA and application quality and incorporates critical-path supervision into delay modeling.
@@ -45,6 +55,13 @@ Hardware-cost predictors illustrate how these representations can be tailored to
 Graph-based models have been developed for HLS performance~\cite{wu2022hls_gnn}, RTL-level PPA~\cite{xu2022sns}, and FPGA power estimation~\cite{lin2022powergear}.
 Operation-delay and pre-routing timing models incorporate dependencies relevant to signal propagation~\cite{ustun2020delay,guo2022timingpredict}, while arithmetic-error features support application-accuracy prediction~\cite{mo2024errorfeatures}.
 These studies reduce repeated synthesis and implementation effort, but accurate prediction alone is a different objective from identifying the best hardware--quality tradeoffs with a limited measurement budget.
+
+Approximation-specific error modeling provides complementary information for evaluating candidate designs.
+LEVAX~\cite{jiao2020levax} develops input-aware error modeling for voltage-scaled functional units.
+VECBEE~\cite{su2022vecbee} improves batch error estimation for approximate logic synthesis, while formal methods address maximum-error estimation~\cite{scarabottolo2022formal}.
+High-level error estimation has also been investigated for approximate-computing DSE~\cite{vaeztourshizi2023error}.
+Recent GNN-based work extends hardware-cost prediction to power estimation for approximate logic synthesis~\cite{li2026powergap}.
+These methods highlight the importance of objective-specific modeling, although predicting individual metrics does not itself determine which configurations should receive additional ground-truth evaluation.
 
 Model adaptation and calibration address discrepancies between predictions and target measurements.
 ApproxGNN investigates target-domain fine-tuning and a global additive correction for transferred quality predictions~\cite{vlcek2025approxgnn}.

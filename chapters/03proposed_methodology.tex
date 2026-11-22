@@ -4,7 +4,7 @@
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=1\textwidth]{figures/ApproxPilot_SE_Framework_Semantic.pdf}
+    \includegraphics[width=1\textwidth]{figures/framwork5.pdf}
     \caption{Overview of ApproxPilot-SE. The framework combines surrogate prediction, local latency calibration, and iterative feedback. Measured results update the surrogate models and calibration references. Final DSE produces a Pareto front and representative designs based on measured PPA and accuracy.}
     \label{fig:framework}
 \end{figure*}
@@ -68,7 +68,7 @@ Here, larger values of $Acc(\mathbf{x})$ indicate higher accuracy. The first thr
 Fig.~\ref{fig:framework} shows how ApproxPilot-SE explores the design space $\Omega$ with a limited evaluation budget. The framework first samples and evaluates an initial set of configurations to train separate graph neural network (GNN) surrogates for PPA and application accuracy. The subsequent DSE is self-evolving: the current surrogates guide the search, and the search identifies which configurations to evaluate next. At predefined intervals, ApproxPilot-SE measures selected candidates, including promising PPA--accuracy trade-offs and designs near the accuracy boundary. These measurements supply new training labels and latency calibration references in the regions the search is exploring. The updated predictions, in turn, help the next round rank candidates and identify designs more likely to offer favorable trade-offs while meeting the accuracy constraint. Once the feedback budget is exhausted, the framework fixes the models and references, conducts a final search, and evaluates shortlisted designs to identify feasible Pareto designs. This subsection describes the search and evaluation workflow; Section~\ref{sec:surrogate_models} details the model architectures, training, and local latency calibration.
 
 \noindent\textit{1) Initialization and surrogate-guided search:}
-ApproxPilot-SE evaluates the initial configurations through logic synthesis and application execution. The resulting PPA and accuracy measurements form the initial training dataset $\mathcal{D}_0$, and the measured configurations also form the initial latency calibration reference set $\mathcal{R}_0$. NSGA-III uses the current PPA and accuracy predictions, including calibrated latency, to rank configurations and explore trade-offs without evaluating every candidate through synthesis and execution.
+ApproxPilot-SE evaluates the initial configurations through logic synthesis and application execution. The resulting PPA and accuracy measurements form the initial training dataset $\mathcal{D}_0$, and the measured configurations also form the initial latency calibration reference set $\mathcal{R}_0$. NSGA-III \cite{deb2014nsgaiii}uses the current PPA and accuracy predictions, including calibrated latency, to rank configurations and explore trade-offs without evaluating every candidate through synthesis and execution.
 
 \noindent\textit{2) Candidate selection for evaluation:}
 At each feedback round, ApproxPilot-SE prioritizes promising Pareto trade-offs and reserves part of the evaluation budget for candidates just below the predicted accuracy threshold. Evaluating candidates near this boundary helps identify feasible designs that might otherwise be discarded because of prediction errors.
