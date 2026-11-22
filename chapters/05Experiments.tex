@@ -141,7 +141,7 @@ Benchmark & Method
 \vspace{2pt}
 \parbox{0.94\textwidth}{%
 \footnotesize\raggedright
-\textit{Note:} Each method uses 720 labeled training configurations and an additional disjoint set of 60 validation configurations. The 100 final candidates are independently verified and excluded from both sets. Bold indicates the highest value in each comparison; ties are both highlighted.
+\textit{Note:} Each method uses 720 labeled training configurations and an additional disjoint set of 60 validation configurations. The 100 final candidates are independently verified and excluded from both sets. Bold indicates the highest value in each comparison. Ties are both highlighted.
 }
 
 
@@ -180,9 +180,9 @@ We employ relative three-dimensional PPA hypervolume (HV) to evaluate the optimi
     =
     \frac{
         \mathrm{HV}(\mathcal{P}_{\tau}
-        \cup\{\mathbf{f}_{\mathrm{ex}}\};\mathbf{r})
+        \cup\{\mathbf{f}_{\mathrm{ex}}\},\mathbf{r})
     }{
-        \mathrm{HV}(\{\mathbf{f}_{\mathrm{ex}}\};\mathbf{r})
+        \mathrm{HV}(\{\mathbf{f}_{\mathrm{ex}}\},\mathbf{r})
     },
     \label{eq:relative_hv}
 \end{equation}
@@ -216,7 +216,7 @@ where $\mathbf{f}_{\mathrm{ex}}=(1,1,1)$ and $\mathcal{P}_{\tau}$ contains the m
 \subsubsection{Comparison Protocol}
 Table~\ref{tab:hv_gain} compares the three methods on the five benchmarks in Section~\ref{sec:setup} at a matched budget of 720 labeled training configurations per method and benchmark. ApproxPilot-SE divides this budget between $n_0$ initial configurations and batches of $b_t$ newly measured configurations acquired over $R$ feedback rounds, so that $n_0+\sum_{t=1}^{R} b_t=720$. Specifically, $n_0=540$, $R=2$, and $b_1=b_2=90$. In each feedback round, 18 configurations are allocated to accuracy-boundary sampling, while the remaining 72 are selected through Pareto-guided acquisition. The new labels update both the surrogates and the calibration references.
 
-For the baselines, the comparison counts target configurations used for training or adaptation; any source-domain pretraining is accounted for separately. ApproxPilot uses randomly sampled target configurations for surrogate training. ApproxGNN uses the other four benchmarks for source-domain pretraining and adapts its pretrained model to the target benchmark using the matched target-label budget. Each method uses an additional set of 60 validation configurations, disjoint from the 720 training configurations. Each method performs 15,000 surrogate-guided trials in the final search. The final 100 candidates per method are evaluated independently and are not counted as training labels. Verified relative HV is evaluated at 80\%, 85\%, 90\%, 95\%, and 99\% SSIM retention using the exact design as the reference.
+For the baselines, the comparison counts target configurations used for training or adaptation. Any source-domain pretraining is accounted for separately. ApproxPilot uses randomly sampled target configurations for surrogate training. ApproxGNN uses the other four benchmarks for source-domain pretraining and adapts its pretrained model to the target benchmark using the matched target-label budget. Each method uses an additional set of 60 validation configurations, disjoint from the 720 training configurations. Each method performs 15,000 surrogate-guided trials in the final search. The final 100 candidates per method are evaluated independently and are not counted as training labels. Verified relative HV is evaluated at 80\%, 85\%, 90\%, 95\%, and 99\% SSIM retention using the exact design as the reference.
 
 
 
@@ -228,7 +228,7 @@ At 80\% SSIM retention, all three methods improve on the exact-only reference on
 Across the 25 benchmark--threshold pairs, the geometric mean of the relative-HV ratios is 2.61$\times$ against ApproxPilot and 2.79$\times$ against ApproxGNN. The maximum ratios are 24.96$\times$ against ApproxPilot on KMeans at 85\% retention and 13.53$\times$ against ApproxGNN on KMeans at 90\% retention. Taking the stronger baseline separately for each pair gives a geometric mean of 2.09$\times$ and a maximum of 13.53$\times$ (KMeans at 90\%: 39.63$\times$ versus 2.93$\times$). ApproxPilot-SE leads outright in 23 of 25 pairs, ties ApproxGNN on Sobel at 80\%, and trails ApproxPilot only on Sobel at 99\%. It leads on all five benchmarks at each threshold from 85\% through 95\%. The gains vary by workload: on Sobel they are generally smaller, whereas KMeans shows a large advantage at intermediate thresholds and DCT and Gaussian show their largest advantages at 99\%. The large KMeans ratio at 90\% reflects both the PPA trade-offs found by ApproxPilot-SE and the small HV achieved by both baselines at that threshold.
 
 \noindent\textit{DCT under tighter accuracy constraints:}
-On DCT at 90\% retention, ApproxPilot-SE reaches 13.81$\times$ the exact-design HV, compared with 4.34$\times$ for ApproxPilot and 3.95$\times$ for ApproxGNN. This is 3.18$\times$ the stronger baseline. At 99\% retention, ApproxPilot-SE still reaches 10.25$\times$ the exact-design HV and 8.99$\times$ the stronger baseline. The latter ratio partly reflects that both baselines are close to the exact-only reference. The DCT ablations in Section~\ref{sec:optimization_analysis} show that removing iterative feedback, guided selection, or local latency calibration reduces final HV at 90\% retention. These results support the contribution of those mechanisms on DCT; the comparison alone does not isolate their effects at 99\%.
+On DCT at 90\% retention, ApproxPilot-SE reaches 13.81$\times$ the exact-design HV, compared with 4.34$\times$ for ApproxPilot and 3.95$\times$ for ApproxGNN. This is 3.18$\times$ the stronger baseline. At 99\% retention, ApproxPilot-SE still reaches 10.25$\times$ the exact-design HV and 8.99$\times$ the stronger baseline. The latter ratio partly reflects that both baselines are close to the exact-only reference. The DCT ablations in Section~\ref{sec:optimization_analysis} show that removing iterative feedback, guided selection, or local latency calibration reduces final HV at 90\% retention. These results support the contribution of those mechanisms on DCT. The comparison alone does not isolate their effects at 99\%.
 
 
 
@@ -241,7 +241,7 @@ To show the trade-offs behind the aggregate HV results, Fig.~\ref{fig:measured_p
 
 
 
-The area and power projections show that ApproxPilot-SE can retain hardware savings over a range of quality levels, including near the exact design's SSIM. The latency projection likewise includes several ApproxPilot-SE candidates below the exact-design latency at high retention, where many baseline candidates remain at or above that reference. The scatter also shows that not every candidate improves every objective. These projections illustrate individual trade-offs within the final measured sets; Table~\ref{tab:hv_gain} evaluates area, power, and latency jointly under each SSIM constraint.
+The area and power projections show that ApproxPilot-SE can retain hardware savings over a range of quality levels, including near the exact design's SSIM. The latency projection likewise includes several ApproxPilot-SE candidates below the exact-design latency at high retention, where many baseline candidates remain at or above that reference. The scatter also shows that not every candidate improves every objective. These projections illustrate individual trade-offs within the final measured sets. Table~\ref{tab:hv_gain} evaluates area, power, and latency jointly under each SSIM constraint.
 
 
 
@@ -325,7 +325,7 @@ At the two budgets with detailed runtime breakdowns, data acquisition accounts f
 \subsubsection{End-to-End Ablation}
 Table~\ref{tab:optimization_analysis} compares the full framework at 90\% SSIM retention with three variants: one-shot surrogate training, random feedback selection, and search without local latency calibration. Relative HV measures each mechanism's contribution to the final verified design set. All variants use a total budget of 720 labeled target configurations and independently evaluate 100 final candidates. The full framework starts with 540 configurations and acquires 90 additional labels in each of two feedback rounds.  The one-shot variant instead obtains 720 randomly sampled target training configurations, and trains its surrogates once using the corresponding training split. Random Selection retains the same feedback schedule but replaces Pareto-guided acquisition with random sampling, while No Calibration disables local latency calibration.
 
-Compared with one-shot training, iterative feedback improves relative HV on three of five benchmarks, with the largest absolute increase on KMeans (23.37$\times$ to 39.63$\times$). Guided selection outperforms random selection on DCT, Sobel, and KMeans; on Sobel it raises relative HV from 11.45$\times$ to 16.06$\times$. Local calibration improves final relative HV on four of five benchmarks, including DCT (11.48$\times$ to 13.81$\times$) and Gaussian (30.12$\times$ to 33.49$\times$). Some variants perform better on individual benchmarks, so the benefit of each mechanism depends on the workload. These results assess design selection quality; they do not directly measure latency prediction error.
+Compared with one-shot training, iterative feedback improves relative HV on three of five benchmarks, with the largest absolute increase on KMeans (23.37$\times$ to 39.63$\times$). Guided selection outperforms random selection on DCT, Sobel, and KMeans. On Sobel it raises relative HV from 11.45$\times$ to 16.06$\times$. Local calibration improves final relative HV on four of five benchmarks, including DCT (11.48$\times$ to 13.81$\times$) and Gaussian (30.12$\times$ to 33.49$\times$). Some variants perform better on individual benchmarks, so the benefit of each mechanism depends on the workload. These results assess design selection quality. They do not directly measure latency prediction error.
 
 \begin{table}[t]
 \centering

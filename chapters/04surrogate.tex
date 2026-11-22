@@ -74,7 +74,7 @@ and used for latency prediction without requiring explicit critical-path labels.
 \subsection{Application Accuracy Surrogate}
 \label{subsec:accuracy}
 
-Application-level accuracy depends on how approximation errors propagate through the accelerator. To capture this relationship, we use a separate five-layer GraphSAGE encoder with a hidden dimension of 128. GraphSAGE aggregates neighboring node features on $G_S$; stacking these layers allows an operation's representation to incorporate approximation-related information from multiple hops in the application graph. This branch uses the arithmetic-error features introduced above to learn how the selected units affect the application output.
+Application-level accuracy depends on how approximation errors propagate through the accelerator. To capture this relationship, we use a separate five-layer GraphSAGE encoder with a hidden dimension of 128. GraphSAGE aggregates neighboring node features on $G_S$. Stacking these layers allows an operation's representation to incorporate approximation-related information from multiple hops in the application graph. This branch uses the arithmetic-error features introduced above to learn how the selected units affect the application output.
 
 For a given configuration $\mathbf{x}$, the model predicts SSIM for each evaluation image. The configuration-level accuracy is obtained by averaging these predictions:
 \begin{equation}
@@ -90,9 +90,9 @@ where $M$ is the number of evaluation images and $\widehat{\mathrm{SSIM}}_j(\mat
 \subsection{Surrogate Training and Updates}
 \label{subsec:surrogate_training}
 
-The two models are trained separately on the initial measured configurations in $\mathcal{D}_0$. Each configuration provides a graph input for each branch and its corresponding regression targets. For the PPA model, the targets are area, power, and latency obtained from logic synthesis. The latency target is the measured latency of the complete accelerator, so training the path-aware readout does not require labels for individual critical-path nodes. For the accuracy model, application execution provides an SSIM target for each evaluation image; the predicted scores are averaged to obtain the configuration-level accuracy used by DSE.
+The two models are trained separately on the initial measured configurations in $\mathcal{D}_0$. Each configuration provides a graph input for each branch and its corresponding regression targets. For the PPA model, the targets are area, power, and latency obtained from logic synthesis. The latency target is the measured latency of the complete accelerator, so training the path-aware readout does not require labels for individual critical-path nodes. For the accuracy model, application execution provides an SSIM target for each evaluation image. The predicted scores are averaged to obtain the configuration-level accuracy used by DSE.
 
-During the self-evolving search, the configurations selected for evaluation in Section~\ref{subsec:framework_overview} provide new labeled examples. At each scheduled update, both models are reinitialized and trained on the cumulative dataset $\mathcal{D}_{t+1}$, which retains the earlier measurements as well as the new ones. The updated models are used to score candidates in the next search round. Latency calibration uses residuals computed with the current model at prediction time; the measured latency remains the training target.
+During the self-evolving search, the configurations selected for evaluation in Section~\ref{subsec:framework_overview} provide new labeled examples. Once an evaluation batch is complete, both models are further trained on the cumulative dataset $\mathcal{D}_{t+1}$, which retains the earlier measurements as well as the new ones. The updated models are used to score candidates in the next search round. Latency calibration uses residuals computed with the current model at prediction time. The measured latency remains the training target.
 
 \subsection{Local Latency Calibration}
 \label{subsec:local_latency_calibration}

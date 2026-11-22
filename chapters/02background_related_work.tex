@@ -68,7 +68,7 @@ ApproxGNN investigates target-domain fine-tuning and a global additive correctio
 Fine-tuning adapts the learned mapping using target labels, whereas a uniform additive correction compensates for a shared shift without changing pairwise prediction differences.
 This distinction matters for DSE because candidate ranking depends on relative predictions, and prediction errors need not be uniform across the explored configurations.
 
-AutoAx provides feature-based cost and quality prediction; ApproxPilot adds circuit and path information; ApproxGNN supports transferable representations and calibration; and ARS-Flow 2.0 incorporates model updates during optimization.
+AutoAx provides feature-based cost and quality prediction, while ApproxPilot adds circuit and path information. ApproxGNN supports transferable representations and calibration, and ARS-Flow 2.0 incorporates model updates during optimization.
 For the approximate-accelerator methods compared here, structural modeling and transfer improve predictive capability, but do not by themselves ensure reliable search with sparse target labels or adapt predictions to newly explored regions.
 Sequential hardware DSE provides useful sampling and update strategies, while leaving the question of how best to combine them with configuration-dependent correction for joint PPA and application-quality optimization.
 

@@ -4,8 +4,8 @@
 
 \begin{figure*}[t]
     \centering
-    \includegraphics[width=1\textwidth]{figures/framwork5.pdf}
-    \caption{Overview of ApproxPilot-SE. The framework combines surrogate prediction, local latency calibration, and iterative feedback. Measured results update the surrogate models and calibration references. Final DSE produces a Pareto front and representative designs based on measured PPA and accuracy.}
+    \includegraphics[width=\textwidth]{figures/ApproxPilot_SE_Overview.pdf}
+    \caption{Overview of ApproxPilot-SE. Initial measurements train the PPA and accuracy GNNs and initialize calibration references. NSGA-III uses surrogate predictions, local latency calibration, and Pareto ranking to collect candidates for real evaluation. New measurements update both models and references before search resumes. When the feedback budget is exhausted, fixed models guide final search and verification, followed by constraint-based configuration selection.}
     \label{fig:framework}
 \end{figure*}
 
@@ -65,13 +65,13 @@ Here, larger values of $Acc(\mathbf{x})$ indicate higher accuracy. The first thr
 \subsection{Framework Overview}
 \label{subsec:framework_overview}
 
-Fig.~\ref{fig:framework} shows how ApproxPilot-SE explores the design space $\Omega$ with a limited evaluation budget. The framework first samples and evaluates an initial set of configurations to train separate graph neural network (GNN) surrogates for PPA and application accuracy. The subsequent DSE is self-evolving: the current surrogates guide the search, and the search identifies which configurations to evaluate next. At predefined intervals, ApproxPilot-SE measures selected candidates, including promising PPA--accuracy trade-offs and designs near the accuracy boundary. These measurements supply new training labels and latency calibration references in the regions the search is exploring. The updated predictions, in turn, help the next round rank candidates and identify designs more likely to offer favorable trade-offs while meeting the accuracy constraint. Once the feedback budget is exhausted, the framework fixes the models and references, conducts a final search, and evaluates shortlisted designs to identify feasible Pareto designs. This subsection describes the search and evaluation workflow; Section~\ref{sec:surrogate_models} details the model architectures, training, and local latency calibration.
+Fig.~\ref{fig:framework} organizes ApproxPilot-SE into initialization, surrogate-guided candidate search, evaluation and model updating, and final configuration selection. After training initial GNN surrogates on measured designs, the framework repeatedly searches for promising candidates, evaluates a selected batch, and uses the new measurements to update both the models and the calibration references. The updated predictions then guide further search. This interaction makes the DSE self-evolving: search determines which new data are collected, and those data improve the predictions used to identify the next candidates. The process continues within the evaluation budget and outputs feasible designs according to the user-specified constraints. Section~\ref{sec:surrogate_models} describes the model architectures, training, and latency calibration.
 
-\noindent\textit{1) Initialization and surrogate-guided search:}
-ApproxPilot-SE evaluates the initial configurations through logic synthesis and application execution. The resulting PPA and accuracy measurements form the initial training dataset $\mathcal{D}_0$, and the measured configurations also form the initial latency calibration reference set $\mathcal{R}_0$. NSGA-III \cite{deb2014nsgaiii}uses the current PPA and accuracy predictions, including calibrated latency, to rank configurations and explore trade-offs without evaluating every candidate through synthesis and execution.
+\noindent\textit{1) Initialization:}
+ApproxPilot-SE samples an initial set of legal arithmetic-unit configurations from $\Omega$ and evaluates them through logic synthesis and application execution. The measured PPA and application accuracy form the initial labeled dataset $\mathcal{D}_0$. Two GNN-based surrogate models are constructed and trained on these data, one for PPA and the other for application accuracy. The measured configurations also initialize the latency calibration reference set $\mathcal{R}_0$. Initialization thus provides both the prediction models and measured references required to begin exploration.
 
-\noindent\textit{2) Candidate selection for evaluation:}
-At each feedback round, ApproxPilot-SE prioritizes promising Pareto trade-offs and reserves part of the evaluation budget for candidates just below the predicted accuracy threshold. Evaluating candidates near this boundary helps identify feasible designs that might otherwise be discarded because of prediction errors.
+\noindent\textit{2) Surrogate-Guided Candidate Search:}
+NSGA-III~\cite{deb2014nsgaiii} generates candidate configurations whose PPA and application accuracy are estimated by the current surrogates. Latency predictions are corrected using the current calibration references when a suitable reference is available. The predicted objectives support Pareto ranking and selection, allowing the search to identify promising trade-offs without synthesizing and executing every candidate. While the next evaluation batch is being collected, the models and references remain fixed. NSGA-III continues exploring and refining the candidate set until enough previously unevaluated, Pareto-relevant configurations have been selected to fill the round's batch budget. A portion of the batch is reserved for candidates just below the predicted accuracy threshold to reduce the risk of overlooking feasible designs because of prediction errors.
 
 Let $\mathcal{U}_t$ denote the set of unique, previously unevaluated configurations available for selection at round $t$. The predicted accuracy retention is defined as
 \begin{equation}
@@ -106,23 +106,23 @@ Candidates in $\mathcal{U}_t^{+}$ are prioritized by nondominated sorting of the
 
 
 
-\noindent\textit{3) Evaluation and self-evolving feedback:}
-The selected set $\mathcal{S}_t$ contains candidates from $\mathcal{U}_t^{+}$ and $\mathcal{U}_t^{-}$. Logic synthesis and application execution yield measured PPA and accuracy for these candidates. The new measurements are added to the cumulative training dataset:
+\noindent\textit{3) Candidate Evaluation and Model Updates:}
+Once the selected batch $\mathcal{S}_t$ has been collected from $\mathcal{U}_t^{+}$ and $\mathcal{U}_t^{-}$, its configurations undergo logic synthesis and application execution. Their measured PPA and accuracy are added to the cumulative training dataset:
 \begin{equation}
     \mathcal{D}_{t+1}
     =
     \mathcal{D}_t\cup\mathcal{Y}_t,
     \label{eq:se_dataset_update}
 \end{equation}
-where $\mathcal{Y}_t$ contains the newly evaluated configurations and their measured labels. Both surrogate models are reinitialized and retrained on the expanded dataset. Meanwhile, the measured configurations are added to the latency calibration references:
+where $\mathcal{Y}_t$ contains the newly evaluated configurations and their measured labels. Both surrogate models are further trained on the expanded dataset, using the new examples together with previous measurements to refine their predictions. Meanwhile, the newly measured configurations enrich the latency calibration reference set:
 \begin{equation}
     \mathcal{R}_{t+1}
     =
     \mathcal{R}_t\cup\mathcal{S}_t.
     \label{eq:se_reference_update}
 \end{equation}
-The reference residuals are then recomputed using the updated latency surrogate. This closes the feedback loop: DSE determines where new measurements are collected, and the updated surrogates and references determine how candidates are scored in the next round. As measurements accumulate in regions relevant to the search, the surrogates can better resolve trade-offs there, and the search can select more promising candidates for subsequent evaluation.
+The reference residuals are recomputed with the updated latency surrogate, and the framework returns to candidate search in step 2. DSE therefore supplies training examples from regions relevant to optimization, while the refined models and expanded references support more reliable candidate ranking in the next round. This repeated exchange couples surrogate improvement with the discovery of promising configurations rather than treating model training and search as isolated stages.
 
 
-\noindent\textit{4) Final search and output:}
-After the feedback budget is exhausted, ApproxPilot-SE uses the final surrogates and calibration references to shortlist configurations for separate evaluation through synthesis and application execution. Using these measurements, it identifies nondominated designs that satisfy the user-specified constraints and returns representative configurations spanning the feasible PPA--accuracy trade-offs.
+\noindent\textit{4) Budget Termination and Configuration Output:}
+The evaluation budget determines when the search--evaluation--update loop terminates. After feedback acquisition ends, the final models and references remain fixed during the final candidate search. Shortlisted designs are verified using the budget reserved for final evaluation, without further model updates. Once these evaluations are complete, the framework filters the measured designs according to the user-specified constraints and identifies their nondominated configurations. It then returns the preferred feasible configuration or a set of Pareto alternatives according to the user's hardware objectives.

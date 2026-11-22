@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="650" viewBox="0 0 1000 650">
+<rect x="10" y="10" width="980" height="92" rx="7" fill="#F3F7FC" stroke="#B6C9DA" stroke-width="1"/>
+<text x="26" y="32" fill="#346EA8" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="start">1  INITIALIZATION</text>
+<rect x="28" y="44" width="295" height="48" rx="7" fill="#FFFFFF" stroke="#B6C9DA" stroke-width="1"/>
+<text x="175.5" y="62" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Target RTL + arithmetic-unit library</text>
+<text x="175.5" y="79" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Initial sampling + synthesis + execution</text>
+<polyline points="323,68 361,68" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="361,68 354.69321792468304,64.96281382617713 354.69321792468304,71.03718617382287" fill="#20364B" stroke="#20364B"/>
+<rect x="362" y="44" width="242" height="48" rx="7" fill="#FFFFFF" stroke="#B6C9DA" stroke-width="1"/>
+<text x="483" y="62" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Measured PPA + application quality</text>
+<text x="483" y="79" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Initial labeled configurations</text>
+<polyline points="604,68 642,68" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="642,68 635.693217924683,64.96281382617713 635.693217924683,71.03718617382287" fill="#20364B" stroke="#20364B"/>
+<rect x="643" y="44" width="331" height="48" rx="7" fill="#FFFFFF" stroke="#B6C9DA" stroke-width="1"/>
+<text x="808.5" y="62" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Train initial PPA and accuracy GNNs</text>
+<text x="808.5" y="79" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Initialize measured calibration references</text>
+<rect x="10" y="116" width="980" height="398" rx="7" fill="#F8FBFE" stroke="#A4BFD6" stroke-width="1"/>
+<text x="28" y="141" fill="#346EA8" font-family="Arial,Helvetica,sans-serif" font-size="22" font-weight="700" text-anchor="start">SELF-EVOLVING DSE</text>
+<text x="975" y="139" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="end">Search selects data. Measured data refine search.</text>
+<rect x="28" y="180" width="185" height="88" rx="7" fill="#E9F2FC" stroke="#346EA8" stroke-width="1"/>
+<text x="120.5" y="202" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">2  Candidate generation</text>
+<text x="120.5" y="229" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">NSGA-III</text>
+<text x="120.5" y="247" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Arithmetic-unit assignments</text>
+<polyline points="213,224 246,224" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="246,224 239.69321792468307,220.96281382617707 239.69321792468307,227.03718617382293" fill="#20364B" stroke="#20364B"/>
+<rect x="247" y="171" width="255" height="105" rx="7" fill="#FFFFFF" stroke="#346EA8" stroke-width="1"/>
+<text x="374.5" y="194" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">Surrogate-based evaluation</text>
+<text x="374.5" y="218" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">PPA GNN + accuracy GNN</text>
+<text x="374.5" y="236" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Similar-configuration retrieval</text>
+<text x="374.5" y="254" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Local latency calibration</text>
+<polyline points="808,92 808,109 374.5,109 374.5,171" fill="none" stroke="#346EA8" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="374.5,171 377.53718617382293,164.69321792468304 371.46281382617707,164.69321792468304" fill="#346EA8" stroke="#346EA8"/>
+<polyline points="502,224 534,224" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="534,224 527.693217924683,220.96281382617707 527.693217924683,227.03718617382293" fill="#20364B" stroke="#20364B"/>
+<rect x="535" y="180" width="166" height="88" rx="7" fill="#E9F2FC" stroke="#346EA8" stroke-width="1"/>
+<text x="618" y="202" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">Pareto ranking</text>
+<text x="618" y="228" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Candidate selection</text>
+<text x="618" y="246" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Diverse candidate designs</text>
+<polyline points="701,224 720,224" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="720,224 713.693217924683,220.96281382617707 713.693217924683,227.03718617382293" fill="#20364B" stroke="#20364B"/>
+<polygon points="769,184.0 818.0,224 769,264.0 720.0,224" fill="#FFFFFF" stroke="#346EA8"/>
+<text x="769" y="212" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Enough</text>
+<text x="769" y="229" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" text-anchor="middle">candidates?</text>
+<polyline points="769,264 769,307 120.5,307 120.5,268" fill="none" stroke="#346EA8" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="120.5,268 117.4628138261771,274.30678207531696 123.5371861738229,274.30678207531696" fill="#346EA8" stroke="#346EA8"/>
+<rect x="420" y="295" width="210" height="24" rx="0" fill="#F8FBFE" stroke="#F8FBFE" stroke-width="0"/>
+<text x="525" y="311" fill="#346EA8" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">No: continue candidate search</text>
+<polyline points="818,224 893,224 893,285" fill="none" stroke="#B77825" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="893,285 896.0371861738229,278.69321792468304 889.9628138261771,278.69321792468304" fill="#B77825" stroke="#B77825"/>
+<text x="854" y="214" fill="#B77825" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" text-anchor="middle">Yes</text>
+<rect x="811" y="285" width="164" height="101" rx="7" fill="#FFF3DE" stroke="#B77825" stroke-width="1"/>
+<text x="893" y="307" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">3  Real evaluation</text>
+<text x="893" y="332" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Logic synthesis</text>
+<text x="893" y="350" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Application execution</text>
+<text x="893" y="368" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Measured PPA + quality</text>
+<polyline points="893,386 893,413 712,413" fill="none" stroke="#168071" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="712,413 718.306782075317,416.0371861738229 718.306782075317,409.9628138261771" fill="#168071" stroke="#168071"/>
+<text x="811" y="405" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">New measured configurations</text>
+<rect x="260" y="355" width="452" height="111" rx="7" fill="#E7F4EF" stroke="#168071" stroke-width="1"/>
+<text x="486" y="379" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="16" font-weight="700" text-anchor="middle">Surrogate and reference updates</text>
+<rect x="275" y="399" width="201" height="51" rx="7" fill="#FFFFFF" stroke="#A7CDBD" stroke-width="1"/>
+<text x="375.5" y="419" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Expand labeled dataset</text>
+<text x="375.5" y="437" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Further train both GNNs</text>
+<rect x="493" y="399" width="203" height="51" rx="7" fill="#FFFFFF" stroke="#A7CDBD" stroke-width="1"/>
+<text x="594.5" y="419" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Add calibration references</text>
+<text x="594.5" y="437" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="400" text-anchor="middle">Refresh latency residuals</text>
+<polyline points="260,413 204,413" fill="none" stroke="#168071" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="204,413 210.30678207531693,416.0371861738229 210.30678207531693,409.9628138261771" fill="#168071" stroke="#168071"/>
+<polygon points="120.5,368.0 204.0,413 120.5,458.0 37.0,413" fill="#FFFFFF" stroke="#168071"/>
+<text x="120.5" y="394" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" text-anchor="middle">Feedback</text>
+<text x="120.5" y="412" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="700" text-anchor="middle">budget exhausted?</text>
+<polyline points="120.5,368 120.5,307" fill="none" stroke="#168071" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="120.5,307 117.4628138261771,313.30678207531696 123.5371861738229,313.30678207531696" fill="#168071" stroke="#168071"/>
+<text x="133" y="331" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="400" text-anchor="start">No: resume search</text>
+<text x="133" y="347" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="12" font-weight="400" text-anchor="start">with updated models + references</text>
+<polyline points="120.5,458 120.5,545 155,545 155,563" fill="none" stroke="#168071" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="155,563 158.0371861738229,556.693217924683 151.9628138261771,556.693217924683" fill="#168071" stroke="#168071"/>
+<text x="131" y="484" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="13" font-weight="700" text-anchor="start">Yes</text>
+<rect x="28" y="563" width="270" height="67" rx="7" fill="#F3F7FC" stroke="#B6C9DA" stroke-width="1"/>
+<text x="163" y="585" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">4  Final search + verification</text>
+<text x="163" y="605" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Fixed models and references</text>
+<text x="163" y="621" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Reserved final-evaluation budget</text>
+<polyline points="298,597 345,597" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="345,597 338.69321792468304,593.9628138261771 338.69321792468304,600.0371861738229" fill="#20364B" stroke="#20364B"/>
+<rect x="346" y="563" width="277" height="67" rx="7" fill="#F3F7FC" stroke="#B6C9DA" stroke-width="1"/>
+<text x="484.5" y="585" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">Apply user constraints</text>
+<text x="484.5" y="605" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Use measured PPA and application quality</text>
+<text x="484.5" y="621" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Identify feasible nondominated designs</text>
+<polyline points="623,597 670,597" fill="none" stroke="#20364B" stroke-width="1.6" stroke-linejoin="round"/>
+<polygon points="670,597 663.693217924683,593.9628138261771 663.693217924683,600.0371861738229" fill="#20364B" stroke="#20364B"/>
+<rect x="671" y="563" width="303" height="67" rx="7" fill="#E7F4EF" stroke="#168071" stroke-width="1"/>
+<text x="822.5" y="585" fill="#168071" font-family="Arial,Helvetica,sans-serif" font-size="15" font-weight="700" text-anchor="middle">Optimized accelerator configurations</text>
+<text x="822.5" y="605" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Preferred feasible implementation</text>
+<text x="822.5" y="621" fill="#20364B" font-family="Arial,Helvetica,sans-serif" font-size="12.5" font-weight="400" text-anchor="middle">Pareto alternatives for different objectives</text>
+</svg>
